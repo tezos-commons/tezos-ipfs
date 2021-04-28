@@ -1,0 +1,23 @@
+Gateway:
+  Server:
+    Port: 8085
+  Uploads:
+    Enabled: true
+    MaxSize: 50 # MB
+
+Log:
+  Format: text
+  File: /tmp/tezos-ipfs.log
+
+Identity:
+  Name: light-gateway
+
+DB:
+  Bolt: /tmp/bolt.db
+
+PinManagerEnabled: false
+GatewayEnabled: true
+
+Peers:
+  CacheFor:
+    - 12D3KooWP1F2VnTpS9guj9ETnyeUe1eMsreF5XNAhZTkTqVw2m5V # light-gateway

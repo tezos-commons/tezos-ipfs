@@ -1,0 +1,68 @@
+Gateway:
+  Server:
+    Port: 8085
+    AccessTokens:
+      - name: Test
+        token: nlfdndsfklasdfkl
+    UploadToken:
+      - name: UploadToken
+        token: adasas
+  Storage:
+    S3: # this config here is actually a minio server
+      Region: us-east-1
+      Bucket: gatewaydata
+      Secret: minioadmin
+      Key: minioadmin
+      Endpoint: http://localhost:9000
+      DisableSSL: true
+#  Backend:
+#    IPFS:
+#      API: localhost:5001
+  CORS:
+    AllowedDomains:
+      - example.com
+  Uploads:
+    Enabled: true
+    MaxSize: 50 # MB
+
+Log:
+  Format: text
+  File: /tmp/tezos-ipfs.log
+
+#PinManager:
+#  API: localhost:5001
+
+DB:
+  Bolt: /tmp/bolt.db
+
+GatewayEnabled: true
+
+
+# Tell us about yourserlf <3
+# This helps make the admin UI nicer
+Identity:
+  Name: node1
+  Organisation: TezosCommons
+  Contact: "@johann on tezos-dev slack"
+  Comment: "IPFS rocks"
+
+
+# The Peers: Section of this config file gets reloaded immediately
+# if a daemon is running, you do NOT need to restart anything
+# if you make changes to this section, you SHOULD check the logs
+# to make sure you have no error that makes this file invalid to parse
+Peers:
+
+  # If you run a Gateway, auto-cache content from this peers
+  CacheFor:
+    - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
+
+  # If you run a storage server, auto-pin for these nodes
+  # auto-pins can be overwritten
+  PinFor:
+    - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
+
+  # trust information that comes from these peers and
+  # If you run a Gateway, make sure tipfs is conencted to
+  TrustedPeers:
+    - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2

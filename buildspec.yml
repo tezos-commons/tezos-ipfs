@@ -1,0 +1,17 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REGISTRY
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build --build-arg ELK_VERSION=7.12.0 -t $DOCKER_IMAGE:ipfs-s3-$CODEBUILD_SOURCE_VERSION ./docker/ipfs-s3
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image to ECR...
+      - docker push $DOCKER_IMAGE:ipfs-s3-$CODEBUILD_SOURCE_VERSION

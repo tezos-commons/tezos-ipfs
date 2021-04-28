@@ -1,0 +1,19 @@
+Log:
+  Format: text
+  File: /tmp/tezos-ipfs.log
+
+PinManager:
+  API: ipfs-one:5001
+
+DB:
+  Bolt: /tmp/bolt.db
+
+PinManagerEnabled: true
+GatewayEnabled: false
+
+Peers:
+  PinFor:
+    - 12D3KooWP1F2VnTpS9guj9ETnyeUe1eMsreF5XNAhZTkTqVw2m5V # light-gateway
+
+Identity:
+  Name: storage-only

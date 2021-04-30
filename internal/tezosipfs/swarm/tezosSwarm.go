@@ -2,8 +2,6 @@ package swarm
 
 import (
 	"encoding/json"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/sirupsen/logrus"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/config"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/network"
@@ -16,13 +14,15 @@ import (
  * the nodes we care about
  */
 type Swarm struct {
-	addrs      []string // array of peerIds.
-	pids       []peer.ID
-	knownPeers map[string]*PeerAdvertisment
-	l          *sync.Mutex
-	log        *logrus.Entry
-	net        network.NetworkInterface
-	config     *config.Config
+	trustedPeers []string // directly or 2nd level peers
+	knownPeers   map[string]*PeerAdvertisment
+	knownPeersTTL   map[string]time.Time // stores last update
+	cacheFor     []string
+	pinFor       []string
+	l            *sync.Mutex
+	log          *logrus.Entry
+	net          network.NetworkInterface
+	config       *config.Config
 }
 
 func NewSwarm(c *config.Config, l *logrus.Entry, net network.NetworkInterface) *Swarm {
@@ -30,15 +30,16 @@ func NewSwarm(c *config.Config, l *logrus.Entry, net network.NetworkInterface) *
 	s.log = l.WithField("source","swarm")
 	s.l = &sync.Mutex{}
 	s.knownPeers = map[string]*PeerAdvertisment{}
-	s.addrs = []string{}
+	s.knownPeersTTL = map[string]time.Time{}
+	s.trustedPeers = []string{}
 	s.net = net
 	s.config = c
-	s.pids = []peer.ID{}
 	s.log.Trace("init")
 	go s.updateConfig(c)
 	go s.periodic()
 	go s.advertiseMyself()
 	go s.subscribe()
+	go s.purgePeers()
 	return &s
 }
 
@@ -47,31 +48,20 @@ func (s *Swarm) updateConfig(c *config.Config){
 	for {
 		newConfig := <- ch
 		newaddrs := []string{}
-		newpids := []peer.ID{}
 		for _,a := range newConfig.Peers.CacheFor {
-			newaddrs = append(s.addrs, a)
+			newaddrs = append(s.trustedPeers, a)
 		}
 		for _,a := range newConfig.Peers.PinFor {
-			newaddrs = append(s.addrs, a)
+			newaddrs = append(s.trustedPeers, a)
 		}
 		for _,a := range newConfig.Peers.TrustedPeers {
-			newaddrs = append(s.addrs, a)
-		}
-		for _,a := range unique(newaddrs) {
-			ma,e := multiaddr.NewMultiaddr(a)
-			if e != nil {
-				continue
-			}
-			ai,e := peer.AddrInfoFromP2pAddr(ma)
-			if e != nil {
-				continue
-			}
-			newpids = append(s.pids, ai.ID)
+			newaddrs = append(s.trustedPeers, a)
 		}
 
 		s.l.Lock()
-		s.addrs = unique(newaddrs)
-		s.pids = newpids
+		s.pinFor = newConfig.Peers.PinFor
+		s.cacheFor = newConfig.Peers.CacheFor
+		s.trustedPeers = unique(newaddrs)
 		s.l.Unlock()
 		go s.connect()
 	}
@@ -98,13 +88,29 @@ func (s *Swarm) advertiseMyself() {
 func (s *Swarm) connect(){
 	s.l.Lock()
 	defer s.l.Unlock()
-	s.net.Connect(s.addrs)
+	s.net.Connect(s.trustedPeers)
 }
 
 func (s *Swarm) periodic(){
 	for {
 		time.Sleep(15*time.Second)
-		s.net.Connect(s.addrs)
+		s.net.Connect(s.trustedPeers)
+	}
+}
+
+func (s *Swarm) purgePeers(){
+	// makes sure dead peers are removed from our list
+	timeout := 20 * time.Second
+	for {
+		time.Sleep(10 * time.Second)
+		for id,t := range s.knownPeersTTL {
+			if time.Now().Add(-1 * timeout).After(t) {
+				s.l.Lock()
+				delete(s.knownPeersTTL, id)
+				delete(s.knownPeers, id)
+				s.l.Unlock()
+			}
+		}
 	}
 }
 
@@ -118,6 +124,14 @@ func (s *Swarm) subscribe(){
 			padv.PeerId = msg.From
 			s.l.Lock()
 			s.knownPeers[padv.PeerId] = &padv
+			s.knownPeersTTL[padv.PeerId] = time.Now()
+			for _,trusted := range s.config.Peers.TrustedPeers {
+				if trusted == padv.PeerId {
+					s.trustedPeers = append(s.trustedPeers, padv.TrustedPeers...)
+					s.trustedPeers = unique(s.trustedPeers)
+				}
+			}
+			s.l.Unlock()
 		}
 	}
 }
@@ -132,4 +146,64 @@ func unique(stringSlice []string) []string {
 		}
 	}
 	return list
+}
+
+
+func (s *Swarm) PinFor(pid string) bool {
+	s.l.Lock()
+	defer s.l.Unlock()
+	for _,a := range s.pinFor {
+		if a == pid {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Swarm) CacheFor(pid string) bool {
+	s.l.Lock()
+	defer s.l.Unlock()
+	for _,a := range s.cacheFor {
+		if a == pid {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Swarm) IsTrusted(pid string) bool {
+	s.l.Lock()
+	defer s.l.Unlock()
+	for _,a := range s.trustedPeers {
+		if a == pid {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Swarm) CacheForUs() []*PeerAdvertisment {
+	res := []*PeerAdvertisment{}
+	id := s.net.ID()
+	for _,a := range s.knownPeers {
+		for _,b := range a.CacheFor {
+			if b == id {
+				res = append(res, a)
+			}
+		}
+	}
+	return res
+}
+
+func (s *Swarm) PinForUs() []*PeerAdvertisment {
+	res := []*PeerAdvertisment{}
+	id := s.net.ID()
+	for _,a := range s.knownPeers {
+		for _,b := range a.PinFor {
+			if b == id {
+				res = append(res, a)
+			}
+		}
+	}
+	return res
 }

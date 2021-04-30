@@ -10,7 +10,7 @@ Log:
   File: /tmp/tezos-ipfs.log
 
 Identity:
-  Name: light-gateway
+  Name: copycat
 
 DB:
   Bolt: /tmp/bolt.db
@@ -21,3 +21,5 @@ GatewayEnabled: true
 Peers:
   CacheFor:
     - 12D3KooWP1F2VnTpS9guj9ETnyeUe1eMsreF5XNAhZTkTqVw2m5V # light-gateway
+  TrustedPeers:
+    - 12D3KooWSb2MqWGib529J5vR2nW9FpuNh6L2y71M9zNLwiFPa4ez # IPFS NODE

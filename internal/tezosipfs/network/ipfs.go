@@ -146,5 +146,22 @@ func (i *IPFS) UploadAndPin(file io.Reader) (string,error){
 		Kind: "pin_request",
 	}
 	i.SendMessage(&pinRequest)
+	i.log.WithField("cid",cid).Trace("sending pin request")
 	return cid,err
+}
+
+func (i *IPFS) ID() string {
+	return i.id
+}
+
+func (i *IPFS) LocalPin(cid string) (error){
+	err := i.sh.Pin(cid)
+	if err != nil {
+		return err
+	}
+	_,err = i.GetFile(context.Background(),cid)
+	if err != nil {
+		return err
+	}
+	return nil
 }

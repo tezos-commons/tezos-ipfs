@@ -10,13 +10,13 @@ at the bottom of the networking stack are different transport implementations, s
 * tcp sockets
 * udp sockets
 * webRTC
-* tcp + the quic
+* tcp + the quic protocol
 * websockets
 * TOR
 * etc..
 
 There are also helpers for things like [UPnP hole-punching](https://en.wikipedia.org/wiki/Universal_Plug_and_Play) or circuit-relay servers
-to make a libp2p host is visible to others even behind NAT.
+to make sure a libp2p host is visible to others even behind NAT.
 
 One layer above there are different Discovery methods that help nodes find each other, such as [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS), or the most often implemented [Kademlia distributed hash table](https://en.wikipedia.org/wiki/Kademlia).
 To use connections most efficiently, libp2p also has a Interface for [Stream Multiplexing](https://docs.libp2p.io/concepts/stream-multiplexing/) that allows it to reuse

@@ -41,7 +41,6 @@ var options = []libp2p.Option{
 	libp2p.ConnectionManager(connmgr.NewConnManager(100, 600, time.Minute)),
 	libp2p.EnableAutoRelay(),
 	libp2p.EnableNATService(),
-	// libp2p.Security(libp2ptls.ID, libp2ptls.New),
 	libp2p.Transport(libp2pquic.NewTransport),
 	libp2p.EnableAutoRelay(),
 	libp2p.DefaultTransports,
@@ -215,6 +214,10 @@ func (l *Lightclient) Subscribe() chan *PubSubMessage {
 	return res
 }
 
+func (l *Lightclient) ID() string {
+	return l.h.ID().String()
+}
+
 func (l *Lightclient) UploadAndPin(file io.Reader) (string,error){
 	fnode,err := l.client.AddFile(context.Background(),file,nil)
 	if err != nil {
@@ -225,5 +228,10 @@ func (l *Lightclient) UploadAndPin(file io.Reader) (string,error){
 		Kind: "pin_request",
 	}
 	l.SendMessage(&pinRequest)
+	l.log.WithField("cid",fnode.Cid()).Trace("sending pin request")
 	return fnode.Cid().String(),err
+}
+
+func (l *Lightclient) LocalPin(cid string) (error){
+	return nil
 }

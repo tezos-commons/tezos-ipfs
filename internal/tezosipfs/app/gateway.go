@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/cache"
@@ -50,6 +51,7 @@ func NewGateway(c *config.Config,net network.NetworkInterface,l *logrus.Entry,s 
 	g.uploadTokens = []config.AccessTokens{}
 	g.accessTokens = []config.AccessTokens{}
 	go g.watchConfig(c)
+	go g.autocache()
 	return &g
 }
 
@@ -73,7 +75,42 @@ func (g *Gateway) Run(){
 	r := gin.New()
 	r.GET("/ipfs/:cid", g.ipfsRoute)
 	r.POST("/upload", g.uploadRoute)
+	r.GET("/network", g.networkRoute)
 	r.Run("0.0.0.0:" + strconv.Itoa(g.port))
+}
+
+
+func (g *Gateway) autocache(){
+	ch := g.net.Subscribe()
+	for {
+		msg := <- ch
+		if msg.Kind == "pin_request" && g.swarm.IsTrusted(msg.From) {
+			g.log.WithField("source",msg.From).WithField("cid",string(msg.Data)).Trace("pin request")
+			if g.swarm.CacheFor(msg.From) {
+				g.log.WithField("cid",string(msg.Data)).WithField("origin",msg.From).Info("Auto-cache")
+				go g.cacheFile(string(msg.Data))
+			}
+		}
+	}
+}
+
+func (g *Gateway) cacheFile(cid string){
+	reader, err := g.net.GetFile(context.Background(),cid)
+	if err != nil {
+		g.log.Error(err)
+	}
+	buf,_ := ioutil.ReadAll(reader)
+	if g.cache != nil {
+		g.cache.StoreFile(cid,bytes.NewReader(buf))
+		g.log.WithField("cid",cid).Trace("Stored in cache")
+		msg := network.PubSubMessage{
+			Kind: "cached",
+			Data: []byte(cid),
+		}
+		g.net.SendMessage(&msg)
+	} else {
+		g.log.WithField("cid",cid).Error("got cache request, but have no cahe configured...")
+	}
 }
 
 func (g *Gateway) ipfsRoute (c *gin.Context) {
@@ -121,7 +158,56 @@ func (g *Gateway) ipfsRoute (c *gin.Context) {
 	c.DataFromReader(200,int64(len(buf)), getType(buf),bytes.NewReader(buf),headers)
 }
 
+func (g *Gateway) networkRoute (c *gin.Context) {
 
+	if len(g.accessTokens) != 0 {
+		tokenH := c.Request.Header["Token"]
+		if len(tokenH) == 0 {
+			c.String(401,"need upload token")
+			return
+		}
+		token := tokenH[0]
+		pass :=  false
+		for _,t := range g.accessTokens {
+			if t.Token == token {
+				pass = true
+			}
+		}
+		if pass == false {
+			c.String(401,"Invalid token")
+			return
+		}
+	}
+
+	// abuse UploadResponse, almost same schema
+	res := UploadResponse{}
+	res.CacheNodes = []CacheNode{}
+	res.StorageNodes = []StorageNode{}
+	caches := g.swarm.CacheForUs()
+	stores := g.swarm.PinForUs()
+	for _,c := range caches {
+		res.CacheNodes = append(res.CacheNodes, CacheNode{
+			Name: c.Name,
+			Organization: c.Organization,
+			Contact: c.Contact,
+			Comment: c.Comment,
+			PeerId: c.PeerId,
+		})
+	}
+	for _,c := range stores {
+		res.StorageNodes = append(res.StorageNodes, StorageNode{
+			Name: c.Name,
+			Organization: c.Organization,
+			Contact: c.Contact,
+			Comment: c.Comment,
+			PeerId: c.PeerId,
+		})
+	}
+	res.NumberCaches = len(stores)
+	res.NumberSores = len(caches)
+
+	c.JSON(200,res)
+}
 
 func (g *Gateway) uploadRoute (c *gin.Context) {
 
@@ -169,4 +255,31 @@ func getType(buf []byte) string {
 	// TODO https://stackoverflow.com/questions/23714383/what-are-all-the-possible-values-for-http-content-type-header
 	// kind, _ := filetype.Match(buf)
 	return ""
+}
+
+type UploadResponse struct{
+	CacheNodes []CacheNode
+	StorageNodes []StorageNode
+	NumberCaches int `json:",omitempty"`
+	NumberSores int `json:",omitempty"`
+	NumberCached int `json:",omitempty"`
+	NumberStored int `json:",omitempty"`
+}
+
+type StorageNode struct{
+	Name string `json:",omitempty"`
+	Organization string `json:",omitempty"`
+	Contact string `json:",omitempty"`
+	Comment string `json:",omitempty"`
+	PeerId string `json:",omitempty"`
+	Stored bool `json:",omitempty"`
+}
+
+type CacheNode struct{
+	Name string `json:",omitempty"`
+	Organization string `json:",omitempty"`
+	Contact string `json:",omitempty"`
+	Comment string `json:",omitempty"`
+	PeerId string `json:",omitempty"`
+	Cached bool `json:",omitempty"`
 }

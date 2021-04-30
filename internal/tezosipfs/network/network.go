@@ -11,6 +11,8 @@ type NetworkInterface interface {
 	 SendMessage(msg *PubSubMessage)
 	 Subscribe() chan *PubSubMessage
 	 UploadAndPin(file io.Reader) (string,error)
+     LocalPin(cid string) error
+	 ID() string
 }
 
 type PubSubMessage struct {

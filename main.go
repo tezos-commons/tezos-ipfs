@@ -32,6 +32,7 @@ func main(){
 	c.Provide(network.GetNetwork)
 	c.Provide(swarm.NewSwarm)
 	c.Provide(GetLog)
+	c.Provide(app.NewPinManager)
 
 	rootCmd := cmd.GetRootCommand(c)
 	if err := rootCmd.Execute(); err != nil {

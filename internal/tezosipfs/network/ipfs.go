@@ -76,9 +76,12 @@ func (i *IPFS) GetFile(ctx context.Context, cidStr string) (io.Reader,error) {
 func (i *IPFS) Connect(peers []string) error {
 	ctx := context.Background()
 	for _,a := range peers {
+		if a == i.id {
+			continue
+		}
 		pi,err := i.sh.FindPeer(a)
 		if err != nil {
-			i.log.Trace("can not parse peerID: ", err)
+			i.log.WithField("peerId",a).Trace("can not parse peerID: ", err)
 			continue
 		}
 		for _,pa := range pi.Addrs {
@@ -120,11 +123,10 @@ func (i *IPFS) listenPubSub(){
 		if _,ok := i.msgcache.Get(psmg.Id); !ok {
 			i.msgcache.Add(psmg.Id,true)
 			psmg.From = msg.From.String()
-			if psmg.From != i.id {
 				for _,c := range i.pubsubscriptions {
 					c <- &psmg
 				}
-			}
+
 		}
 	}
 }
@@ -143,7 +145,7 @@ func (i *IPFS) UploadAndPin(file io.Reader) (string,error){
 	err = i.sh.Pin(cid)
 	pinRequest := PubSubMessage{
 		Data: []byte(cid),
-		Kind: "pin_request",
+		Kind: "new_object",
 	}
 	i.SendMessage(&pinRequest)
 	i.log.WithField("cid",cid).Trace("sending pin request")

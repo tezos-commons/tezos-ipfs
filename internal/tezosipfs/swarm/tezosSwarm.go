@@ -88,7 +88,8 @@ func (s *Swarm) advertiseMyself() {
 func (s *Swarm) connect(){
 	s.l.Lock()
 	defer s.l.Unlock()
-	s.net.Connect(s.trustedPeers)
+	cp := s.trustedPeers
+	go s.net.Connect(cp)
 }
 
 func (s *Swarm) periodic(){
@@ -175,6 +176,16 @@ func (s *Swarm) IsTrusted(pid string) bool {
 	s.l.Lock()
 	defer s.l.Unlock()
 	for _,a := range s.trustedPeers {
+		if a == pid {
+			return true
+		}
+	}
+	for _,a := range s.cacheFor {
+		if a == pid {
+			return true
+		}
+	}
+	for _,a := range s.pinFor {
 		if a == pid {
 			return true
 		}

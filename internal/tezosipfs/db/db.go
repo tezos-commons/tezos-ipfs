@@ -13,13 +13,13 @@ type BoltDb struct {
 	bolt *bolt.DB
 }
 
-func NewBoltDb(c *config.Config,l *logrus.Entry) *BoltDb {
+func NewBoltDb(c *config.Config,l *logrus.Entry) (*BoltDb, *bolt.DB) {
 	d := BoltDb{}
 	d.log = l.WithField("source","boltdb")
 
 	db, err := bolt.Open(c.DB.Bolt, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		return nil
+		return nil,nil
 	}
 
 	tx, err := db.Begin(true)
@@ -34,7 +34,7 @@ func NewBoltDb(c *config.Config,l *logrus.Entry) *BoltDb {
 
 	d.bolt = db
 
-	return &d
+	return &d,db
 }
 
 func (d *BoltDb) Write(bucketName, key, value []byte) {

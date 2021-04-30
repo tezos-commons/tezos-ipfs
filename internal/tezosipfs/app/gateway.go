@@ -23,6 +23,7 @@ type Gateway struct {
 	accessTokens []config.AccessTokens
 	uploadTokens []config.AccessTokens
 	l *sync.Mutex
+	cidStatus map[string]
 }
 
 func NewGateway(c *config.Config,net network.NetworkInterface,l *logrus.Entry,s *swarm.Swarm) *Gateway {
@@ -84,7 +85,7 @@ func (g *Gateway) autocache(){
 	ch := g.net.Subscribe()
 	for {
 		msg := <- ch
-		if msg.Kind == "pin_request" && g.swarm.IsTrusted(msg.From) {
+		if msg.Kind == "new_object" && g.swarm.CacheFor(msg.From) {
 			g.log.WithField("source",msg.From).WithField("cid",string(msg.Data)).Trace("pin request")
 			if g.swarm.CacheFor(msg.From) {
 				g.log.WithField("cid",string(msg.Data)).WithField("origin",msg.From).Info("Auto-cache")
@@ -103,11 +104,7 @@ func (g *Gateway) cacheFile(cid string){
 	if g.cache != nil {
 		g.cache.StoreFile(cid,bytes.NewReader(buf))
 		g.log.WithField("cid",cid).Trace("Stored in cache")
-		msg := network.PubSubMessage{
-			Kind: "cached",
-			Data: []byte(cid),
-		}
-		g.net.SendMessage(&msg)
+		g.broadcastCache(cid)
 	} else {
 		g.log.WithField("cid",cid).Error("got cache request, but have no cahe configured...")
 	}
@@ -248,6 +245,14 @@ func (g *Gateway) uploadRoute (c *gin.Context) {
 	}
 
 	c.String(200,cid)
+}
+
+func (g *Gateway) broadcastCache(cid string) {
+	msg := network.PubSubMessage{
+		Kind: "cached",
+		Data: []byte(cid),
+	}
+	g.net.SendMessage(&msg)
 }
 
 

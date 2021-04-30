@@ -31,7 +31,9 @@ type Lightclient struct {
 	connected map[string]bool
 	dht *dht2.IpfsDHT
 	pubsub *pubsub.PubSub
+	floodsub *pubsub.PubSub
 	topic *pubsub.Topic
+	ftopic *pubsub.Topic
 	pubsubscriptions []chan *PubSubMessage
 	msgcache *lru.Cache
 }
@@ -75,15 +77,19 @@ func (l *Lightclient) Setup(){
 		options...,
 	)
 	ps,err := pubsub.NewGossipSub(ctx,h)
+	ps2,err := pubsub.NewFloodSub(ctx,h)
 	if err != nil {
 		panic(err)
 	}
 	l.pubsub = ps
+	l.floodsub = ps2
 	topic,err := ps.Join(BROADCAST_TOPIC)
+	topic2,err := ps2.Join(BROADCAST_TOPIC)
 	if err != nil {
 		panic(err)
 	}
 	l.topic = topic
+	l.ftopic = topic2
 	dht := dht2.NewDHT(context.Background(),h,ds)
 	l.dht = dht
 	if err != nil {
@@ -138,6 +144,9 @@ func (l *Lightclient) Connect(peers []string) error {
 	ctx := context.Background()
 	var wg sync.WaitGroup
 	for _, peerString := range peers {
+		if peerString == l.h.ID().String() {
+			continue
+		}
 		p,err := peer.Decode(peerString)
 		if err != nil {
 			l.log.Warn("can not parse peerID: ", err)
@@ -180,6 +189,7 @@ func (l *Lightclient) SendMessage(msg *PubSubMessage) {
 	msg.Id = uuid.New().String()
 	data,_ := json.Marshal(msg)
 	l.topic.Publish(context.Background(),data)
+	l.ftopic.Publish(context.Background(),data)
 }
 
 func (l *Lightclient) listenPubsub() {
@@ -199,11 +209,9 @@ func (l *Lightclient) listenPubsub() {
 		if _,ok := l.msgcache.Get(psmg.Id); !ok {
 			l.msgcache.Add(psmg.Id,true)
 			psmg.From = p.String()
-			if psmg.From != l.h.ID().String() {
 				for _,c := range l.pubsubscriptions {
 					c <- &psmg
 				}
-			}
 		}
 	}
 }
@@ -225,7 +233,7 @@ func (l *Lightclient) UploadAndPin(file io.Reader) (string,error){
 	}
 	pinRequest := PubSubMessage{
 		Data: []byte(fnode.Cid().String()),
-		Kind: "pin_request",
+		Kind: "new_object",
 	}
 	l.SendMessage(&pinRequest)
 	l.log.WithField("cid",fnode.Cid()).Trace("sending pin request")
@@ -233,5 +241,6 @@ func (l *Lightclient) UploadAndPin(file io.Reader) (string,error){
 }
 
 func (l *Lightclient) LocalPin(cid string) (error){
+	l.log.Error("attempted to pin something on lightclient....")
 	return nil
 }

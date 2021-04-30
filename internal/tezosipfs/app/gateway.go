@@ -10,6 +10,7 @@ import (
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/swarm"
 	"io/ioutil"
 	"strconv"
+	"sync"
 )
 
 type Gateway struct {
@@ -18,7 +19,9 @@ type Gateway struct {
 	cache cache.Cache
 	port  int
 	swarm *swarm.Swarm
-	// TODO Access and Upload tokens
+	accessTokens []config.AccessTokens
+	uploadTokens []config.AccessTokens
+	l *sync.Mutex
 }
 
 func NewGateway(c *config.Config,net network.NetworkInterface,l *logrus.Entry,s *swarm.Swarm) *Gateway {
@@ -29,6 +32,7 @@ func NewGateway(c *config.Config,net network.NetworkInterface,l *logrus.Entry,s 
 	g := Gateway{}
 	g.net = net
 	g.swarm = s
+	g.l = &sync.Mutex{}
 	g.log = l.WithField("source","gateway")
 	g.port = c.Gateway.Server.Port
 	if c.Gateway.Storage.S3.Bucket != "" {
@@ -43,18 +47,56 @@ func NewGateway(c *config.Config,net network.NetworkInterface,l *logrus.Entry,s 
 	if g.cache == nil {
 		g.log.Warn("Running gateway without storage cache!")
 	}
+	g.uploadTokens = []config.AccessTokens{}
+	g.accessTokens = []config.AccessTokens{}
+	go g.watchConfig(c)
 	return &g
 }
+
+
+func (g *Gateway) watchConfig(c *config.Config){
+	ch := c.GetUpdates()
+	for {
+		n := <- ch
+		g.l.Lock()
+		g.log.Info("updating config")
+		g.accessTokens = n.Gateway.Server.AccessTokens
+		g.uploadTokens = n.Gateway.Server.UploadToken
+		g.l.Unlock()
+	}
+}
+
 
 func (g *Gateway) Run(){
 	g.log.Info("Starting gateway on port :" + strconv.Itoa(g.port))
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.GET("/ipfs/:cid", g.ipfsRoute)
+	r.POST("/upload", g.uploadRoute)
 	r.Run("0.0.0.0:" + strconv.Itoa(g.port))
 }
 
 func (g *Gateway) ipfsRoute (c *gin.Context) {
+
+	if len(g.accessTokens) != 0 {
+		tokenH := c.Request.Header["Token"]
+		if len(tokenH) == 0 {
+			c.String(401,"need upload token")
+			return
+		}
+		token := tokenH[0]
+		pass :=  false
+		for _,t := range g.accessTokens {
+			if t.Token == token {
+				pass = true
+			}
+		}
+		if pass == false {
+			c.String(401,"Invalid token")
+			return
+		}
+	}
+
 	cid := c.Param("cid")
 	headers := map[string]string{}
 	if len(cid) <= 12 || len(cid) >= 64 {
@@ -78,6 +120,50 @@ func (g *Gateway) ipfsRoute (c *gin.Context) {
 	g.cache.StoreFile(cid,bytes.NewReader(buf))
 	c.DataFromReader(200,int64(len(buf)), getType(buf),bytes.NewReader(buf),headers)
 }
+
+
+
+func (g *Gateway) uploadRoute (c *gin.Context) {
+
+	if len(g.accessTokens) != 0 {
+		tokenH := c.Request.Header["Token"]
+		if len(tokenH) == 0 {
+			c.String(401,"need upload token")
+			return
+		}
+		token := tokenH[0]
+		pass :=  false
+		for _,t := range g.accessTokens {
+			if t.Token == token {
+				pass = true
+			}
+		}
+		if pass == false {
+			c.String(401,"Invalid token")
+			return
+		}
+	}
+
+	file,err := c.FormFile("file")
+	if err != nil {
+		c.String(500,err.Error())
+		return
+	}
+
+	f,err := file.Open()
+	if err != nil {
+		c.String(500,err.Error())
+		return
+	}
+	cid,err := g.net.UploadAndPin(f)
+	if err != nil {
+		c.String(500,err.Error())
+		return
+	}
+
+	c.String(200,cid)
+}
+
 
 func getType(buf []byte) string {
 	// TODO https://stackoverflow.com/questions/23714383/what-are-all-the-possible-values-for-http-content-type-header

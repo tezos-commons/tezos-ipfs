@@ -10,6 +10,7 @@ type NetworkInterface interface {
 	 Connect(peers []string) error
 	 SendMessage(msg *PubSubMessage)
 	 Subscribe() chan *PubSubMessage
+	 UploadAndPin(file io.Reader) (string,error)
 }
 
 type PubSubMessage struct {

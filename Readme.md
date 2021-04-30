@@ -89,7 +89,7 @@ PinManager:
 
 # DB is needed always
 DB:
-  Bolt: /tmp/bolt.db
+  Bolt: /data/bolt.db
 
 # General Settings
 Log:
@@ -129,5 +129,13 @@ Peers:
   # If you run a Gateway, make sure tipfs is conencted to
   TrustedPeers:
     - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
+```
+
+
+## Curl examples
+
+```
+# uplaoding /testfile with UploadToken
+curl -v -F "file=@/testfile" -H "Token:secret123" http://127.0.0.1:8085/upload
 ```
 

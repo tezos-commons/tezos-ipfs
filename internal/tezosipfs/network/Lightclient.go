@@ -214,3 +214,16 @@ func (l *Lightclient) Subscribe() chan *PubSubMessage {
 	l.pubsubscriptions = append(l.pubsubscriptions, res)
 	return res
 }
+
+func (l *Lightclient) UploadAndPin(file io.Reader) (string,error){
+	fnode,err := l.client.AddFile(context.Background(),file,nil)
+	if err != nil {
+		return "",err
+	}
+	pinRequest := PubSubMessage{
+		Data: []byte(fnode.Cid().String()),
+		Kind: "pin_request",
+	}
+	l.SendMessage(&pinRequest)
+	return fnode.Cid().String(),err
+}

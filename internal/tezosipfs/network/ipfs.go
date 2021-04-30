@@ -134,3 +134,17 @@ func (i *IPFS) Subscribe() chan *PubSubMessage {
 	i.pubsubscriptions = append(i.pubsubscriptions, res)
 	return res
 }
+
+func (i *IPFS) UploadAndPin(file io.Reader) (string,error){
+	cid,err := i.sh.Add(file)
+	if err != nil {
+		return cid,err
+	}
+	err = i.sh.Pin(cid)
+	pinRequest := PubSubMessage{
+		Data: []byte(cid),
+		Kind: "pin_request",
+	}
+	i.SendMessage(&pinRequest)
+	return cid,err
+}

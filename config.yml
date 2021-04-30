@@ -3,10 +3,10 @@ Gateway:
     Port: 8085
     AccessTokens:
       - name: Test
-        token: nlfdndsfklasdfkl
+        token: secret
     UploadToken:
       - name: UploadToken
-        token: adasas
+        token: secret
   Storage:
     S3: # this config here is actually a minio server
       Region: us-east-1

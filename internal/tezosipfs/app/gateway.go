@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/cache"
@@ -13,6 +14,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type Gateway struct {
@@ -25,6 +27,7 @@ type Gateway struct {
 	uploadTokens []config.AccessTokens
 	l            *sync.Mutex
 	db           *db.StormDB
+	c            *config.Config
 }
 
 func NewGateway(c *config.Config, net network.NetworkInterface, l *logrus.Entry, s *swarm.Swarm, db *db.StormDB) *Gateway {
@@ -36,6 +39,7 @@ func NewGateway(c *config.Config, net network.NetworkInterface, l *logrus.Entry,
 	g.net = net
 	g.swarm = s
 	g.db = db
+	g.c = c
 	g.l = &sync.Mutex{}
 	g.log = l.WithField("source", "gateway")
 	g.port = c.Gateway.Server.Port
@@ -74,6 +78,19 @@ func (g *Gateway) Run() {
 	g.log.Info("Starting gateway on port :" + strconv.Itoa(g.port))
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+
+	if len(g.c.Gateway.CORS.AllowedDomains) >= 1 {
+		r.Use(cors.New(cors.Config{
+			AllowOrigins:     g.c.Gateway.CORS.AllowedDomains,
+			AllowMethods:     []string{"GET", "OPTIONS"},
+			AllowHeaders:     []string{"Origin"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			// max age of prefilght cache
+			MaxAge: 12 * time.Hour,
+		}))
+	}
+
 	r.GET("/ipfs/:cid", g.ipfsRoute)
 	r.POST("/upload", g.uploadRoute)
 	r.POST("/upload/threshold50", g.uploadRoute)
@@ -131,7 +148,6 @@ func (g *Gateway) ipfsRoute(c *gin.Context) {
 		}
 	}
 
-
 	cid := c.Param("cid")
 	headers := map[string]string{}
 	if len(cid) <= 12 || len(cid) >= 64 {
@@ -140,7 +156,7 @@ func (g *Gateway) ipfsRoute(c *gin.Context) {
 	}
 
 	if g.db.IsBlocked(cid) {
-		c.String(404,"not found")
+		c.String(404, "not found")
 		return
 	}
 	l, reader, err := g.cache.GetFile(cid)

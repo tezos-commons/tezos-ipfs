@@ -46,7 +46,6 @@ func main(){
 
 
 func GetLog (c *config.Config) *logrus.Entry{
-
 	l := logrus.New()
 	if c.Log.Elasticsearch != "" {
 		client, err := elastic.NewClient(elastic.SetURL("http://localhost:9200"))

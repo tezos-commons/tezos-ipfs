@@ -3,18 +3,17 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REGISTRY
+      - echo Logging into Dockerhub
+      - docker login --username tezoscommons --password $DH_PASSWORD
   build:
     commands:
       - echo Build started on `date`
       - echo Building the Docker images...
-      - docker build -t $DOCKER_IMAGE:ipfs-s3-$CODEBUILD_SOURCE_VERSION ./docker/ipfs-s3
-      - docker build -t $DOCKER_IMAGE:$CODEBUILD_SOURCE_VERSION ./
+      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3-$CODEBUILD_SOURCE_VERSION ./docker/ipfs-s3
+      - docker build -t tezoscommons/tezos-ipfs:$CODEBUILD_SOURCE_VERSION ./
   post_build:
     commands:
       - echo Build completed on `date`
-      - echo Pushing the Docker image to ECR...
-      - docker push $DOCKER_IMAGE:ipfs-s3-$CODEBUILD_SOURCE_VERSION
-      - docker push $DOCKER_IMAGE:$CODEBUILD_SOURCE_VERSION
-      - echo $DH_PASSWORD | docker login --username $DH_USER --password-sdtin
+      - echo Pushing the Docker image to Dockerhub
+      - docker push tezoscommons/tezos-ipfs:ipfs-s3-$CODEBUILD_SOURCE_VERSION
+      - docker push tezoscommons/tezos-ipfs:$CODEBUILD_SOURCE_VERSION

@@ -68,8 +68,12 @@ func GetLog (c *config.Config) *logrus.Entry{
 		mw := io.MultiWriter(os.Stdout, logFile)
 		l.SetOutput(mw)
 		l.SetLevel(logrus.TraceLevel)
-		// todo change format
+	}
+	if c.Log.Format == "text" {
 		l.SetFormatter(&logrus.TextFormatter{})
+	}
+	if c.Log.Format == "json" {
+		l.SetFormatter(&logrus.JSONFormatter{})
 	}
 	return l.WithField("starttime",time.Now().Unix())
 }

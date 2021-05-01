@@ -3,19 +3,19 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Running CI for $(git branch --show-current)
+      - echo Running CI for master
       - echo Logging into Dockerhub
       - docker login --username tezoscommons --password $DH_PASSWORD
   build:
     commands:
       - echo Build started on `date`
       - echo Building the Docker images...
-      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3-$(git branch --show-current) ./docker/ipfs-s3
-      - docker build -t tezoscommons/tezos-ipfs:$(git branch --show-current) ./
+      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3 ./docker/ipfs-s3
+      - docker build -t tezoscommons/tezos-ipfs:latest ./
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Pushing the Docker image to Dockerhub
-      - docker push tezoscommons/tezos-ipfs:ipfs-s3-$(git branch --show-current)
-      - docker push tezoscommons/tezos-ipfs:$(git branch --show-current)
+      - docker push tezoscommons/tezos-ipfs:ipfs-s3
+      - docker push tezoscommons/tezos-ipfs:latest
 

@@ -130,12 +130,3 @@ Peers:
   TrustedPeers:
     - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
 ```
-
-
-## Curl examples
-
-```
-# uplaoding /testfile with UploadToken
-curl -v -F "file=@/testfile" -H "Token:secret123" http://127.0.0.1:8085/upload
-```
-

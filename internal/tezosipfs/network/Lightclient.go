@@ -24,18 +24,18 @@ import (
 )
 
 type Lightclient struct {
-	client *ipfslite.Peer
-	log *logrus.Entry
-	privkey []byte
-	h host.Host
-	connected map[string]bool
-	dht *dht2.IpfsDHT
-	pubsub *pubsub.PubSub
-	floodsub *pubsub.PubSub
-	topic *pubsub.Topic
-	ftopic *pubsub.Topic
+	client           *ipfslite.Peer
+	log              *logrus.Entry
+	privkey          []byte
+	h                host.Host
+	connected        map[string]bool
+	dht              *dht2.IpfsDHT
+	pubsub           *pubsub.PubSub
+	floodsub         *pubsub.PubSub
+	topic            *pubsub.Topic
+	ftopic           *pubsub.Topic
 	pubsubscriptions []chan *PubSubMessage
-	msgcache *lru.Cache
+	msgcache         *lru.Cache
 }
 
 var options = []libp2p.Option{
@@ -51,13 +51,13 @@ var options = []libp2p.Option{
 func NewLightclient(privkey []byte, log *logrus.Entry) *Lightclient {
 	l := Lightclient{}
 	l.privkey = privkey
-	l.log = log.WithField("source","light_client")
+	l.log = log.WithField("source", "light_client")
 	return &l
 }
 
-func (l *Lightclient) Setup(){
+func (l *Lightclient) Setup() {
 	ctx, _ := context.WithCancel(context.Background())
-	ds,err := ipfslite.BadgerDatastore("/tmp/badger")
+	ds, err := ipfslite.BadgerDatastore("/tmp/badger")
 	if err != nil {
 		l.log.Fatal(err)
 	}
@@ -72,25 +72,25 @@ func (l *Lightclient) Setup(){
 		ctx,
 		priv,
 		nil,
-		[]multiaddr.Multiaddr{listen,listen2},
+		[]multiaddr.Multiaddr{listen, listen2},
 		ds,
 		options...,
 	)
-	ps,err := pubsub.NewGossipSub(ctx,h)
-	ps2,err := pubsub.NewFloodSub(ctx,h)
+	ps, err := pubsub.NewGossipSub(ctx, h)
+	ps2, err := pubsub.NewFloodSub(ctx, h)
 	if err != nil {
 		panic(err)
 	}
 	l.pubsub = ps
 	l.floodsub = ps2
-	topic,err := ps.Join(BROADCAST_TOPIC)
-	topic2,err := ps2.Join(BROADCAST_TOPIC)
+	topic, err := ps.Join(BROADCAST_TOPIC)
+	topic2, err := ps2.Join(BROADCAST_TOPIC)
 	if err != nil {
 		panic(err)
 	}
 	l.topic = topic
 	l.ftopic = topic2
-	dht := dht2.NewDHT(context.Background(),h,ds)
+	dht := dht2.NewDHT(context.Background(), h, ds)
 	l.dht = dht
 	if err != nil {
 		panic(err)
@@ -99,44 +99,37 @@ func (l *Lightclient) Setup(){
 	if err != nil {
 		l.log.Fatal(err)
 	}
-	l.msgcache,_ = lru.New(1500)
+	l.msgcache, _ = lru.New(1500)
 	lite.Bootstrap(ipfslite.DefaultBootstrapPeers())
 	l.client = lite
 	l.h = h
 
-	go func() {
-		for {
-			time.Sleep(5*time.Minute)
-			l.log.WithField("known_peers",len(h.Peerstore().PeersWithAddrs())).Info("Peercount update")
-		}
-	}()
 	l.log.Info("My peerID is: ", h.ID().String())
 }
 
-func (l *Lightclient) GetFile(ctxorig context.Context, cidStr string) (io.Reader,error) {
+func (l *Lightclient) GetFile(ctxorig context.Context, cidStr string) (io.Reader, error) {
 	ctx, _ := context.WithCancel(ctxorig)
 	l.log.Trace("Get File: " + cidStr)
-	c,err := cid.Decode(cidStr)
+	c, err := cid.Decode(cidStr)
 	if err != nil {
 		l.log.Error(err)
-		return nil,err
+		return nil, err
 	}
-	rsc,err := l.client.GetFile(ctx, c)
+	rsc, err := l.client.GetFile(ctx, c)
 	if err != nil {
 		l.log.Error(err)
-		return nil,err
+		return nil, err
 	}
-	return rsc,nil
+	return rsc, nil
 }
 
-
-func (l *Lightclient) AddFile(source io.Reader) (string,error) {
-	node,err := l.client.AddFile(context.Background(),source,nil)
+func (l *Lightclient) AddFile(source io.Reader) (string, error) {
+	node, err := l.client.AddFile(context.Background(), source, nil)
 	if err != nil {
 		l.log.Error("Error adding file ", err)
-		return "",err
+		return "", err
 	}
-	return node.Cid().String(),nil
+	return node.Cid().String(), nil
 }
 
 func (l *Lightclient) Connect(peers []string) error {
@@ -147,12 +140,12 @@ func (l *Lightclient) Connect(peers []string) error {
 		if peerString == l.h.ID().String() {
 			continue
 		}
-		p,err := peer.Decode(peerString)
+		p, err := peer.Decode(peerString)
 		if err != nil {
 			l.log.Warn("can not parse peerID: ", err)
 			continue
 		}
-		pinfo,err := l.dht.FindPeer(ctx,p)
+		pinfo, err := l.dht.FindPeer(ctx, p)
 		if err != nil {
 			l.log.Warn("error creating pinfo: ", err)
 			continue
@@ -162,11 +155,11 @@ func (l *Lightclient) Connect(peers []string) error {
 		wg.Add(1)
 		go func(pinfo peer.AddrInfo) {
 			defer wg.Done()
-			err := l.h.Connect(ctx,pinfo)
+			err := l.h.Connect(ctx, pinfo)
 			if err != nil {
 				l.log.Warn(err)
 			} else {
-				if _,ok := l.connected[pinfo.ID.String()]; !ok {
+				if _, ok := l.connected[pinfo.ID.String()]; !ok {
 					l.log.Info("Connected with ", pinfo.ID)
 					l.connected[pinfo.ID.String()] = true
 				}
@@ -184,40 +177,39 @@ func (l *Lightclient) Connect(peers []string) error {
 	return nil
 }
 
-
 func (l *Lightclient) SendMessage(msg *PubSubMessage) {
 	msg.Id = uuid.New().String()
-	data,_ := json.Marshal(msg)
-	l.topic.Publish(context.Background(),data)
-	l.ftopic.Publish(context.Background(),data)
+	data, _ := json.Marshal(msg)
+	l.topic.Publish(context.Background(), data)
+	l.ftopic.Publish(context.Background(), data)
 }
 
 func (l *Lightclient) listenPubsub() {
-	s,e := l.topic.Subscribe()
+	s, e := l.topic.Subscribe()
 	if e != nil {
 		l.log.Fatal(e)
 	}
 	for {
-		msg,e := s.Next(context.Background())
+		msg, e := s.Next(context.Background())
 		if e != nil {
 			l.log.Warn(e)
 		}
-		p,_ := peer.IDFromBytes(msg.From)
+		p, _ := peer.IDFromBytes(msg.From)
 		psmg := PubSubMessage{}
-		json.Unmarshal(msg.Data,&psmg)
+		json.Unmarshal(msg.Data, &psmg)
 
-		if _,ok := l.msgcache.Get(psmg.Id); !ok {
-			l.msgcache.Add(psmg.Id,true)
+		if _, ok := l.msgcache.Get(psmg.Id); !ok {
+			l.msgcache.Add(psmg.Id, true)
 			psmg.From = p.String()
-				for _,c := range l.pubsubscriptions {
-					c <- &psmg
-				}
+			for _, c := range l.pubsubscriptions {
+				c <- &psmg
+			}
 		}
 	}
 }
 
 func (l *Lightclient) Subscribe() chan *PubSubMessage {
-	res := make(chan *PubSubMessage,10)
+	res := make(chan *PubSubMessage, 10)
 	l.pubsubscriptions = append(l.pubsubscriptions, res)
 	return res
 }
@@ -226,21 +218,21 @@ func (l *Lightclient) ID() string {
 	return l.h.ID().String()
 }
 
-func (l *Lightclient) UploadAndPin(file io.Reader) (string,error){
-	fnode,err := l.client.AddFile(context.Background(),file,nil)
+func (l *Lightclient) UploadAndPin(file io.Reader) (string, error) {
+	fnode, err := l.client.AddFile(context.Background(), file, nil)
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	pinRequest := PubSubMessage{
 		Data: []byte(fnode.Cid().String()),
 		Kind: "new_object",
 	}
 	l.SendMessage(&pinRequest)
-	l.log.WithField("cid",fnode.Cid()).Trace("sending pin request")
-	return fnode.Cid().String(),err
+	l.log.WithField("cid", fnode.Cid()).Trace("sending pin request")
+	return fnode.Cid().String(), err
 }
 
-func (l *Lightclient) LocalPin(cid string) (error){
+func (l *Lightclient) LocalPin(cid string) error {
 	l.log.Error("attempted to pin something on lightclient....")
 	return nil
 }

@@ -2,11 +2,10 @@ package app
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"github.com/boltdb/bolt"
 	"github.com/sirupsen/logrus"
+	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/common"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/config"
+	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/db"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/network"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/swarm"
 	"io"
@@ -17,12 +16,12 @@ import (
 
 type PinManager struct {
 	swarm *swarm.Swarm
-	db    *bolt.DB
+	db    *db.StormDB
 	net   network.NetworkInterface
 	log   *logrus.Entry
 }
 
-func NewPinManager(s *swarm.Swarm, db *bolt.DB, net network.NetworkInterface, l *logrus.Entry, c *config.Config) *PinManager {
+func NewPinManager(s *swarm.Swarm, db *db.StormDB, net network.NetworkInterface, l *logrus.Entry, c *config.Config) *PinManager {
 	if c.PinManagerEnabled == false {
 		l.Info("PinManager disabled")
 		return nil
@@ -54,23 +53,23 @@ func (pin *PinManager) listen() {
 
 func (pin *PinManager) Pin(cid string) {
 	start := time.Now()
-	existing, err := pin.getPin(cid)
+	existing, err := pin.db.GetPin(cid)
 	if existing != nil || err == nil {
 		pin.log.WithField("cid", cid).Info("already pinned content")
 		pin.broadcastPin(cid)
 		return
 	}
-	p := &Pin{
+	p := &common.Pin{
 		Cid:     cid,
 		Created: time.Now(),
 		Status:  "pinning",
 	}
-	pin.savePin(p)
+	pin.db.SavePin(p)
 	err = pin.net.LocalPin(cid)
 	if err != nil {
 		pin.log.WithField("cid", cid).Error(err)
 		p.Status = "Error"
-		pin.savePin(p)
+		pin.db.SavePin(p)
 		return
 	}
 	// make sure we have item stored
@@ -86,7 +85,7 @@ func (pin *PinManager) Pin(cid string) {
 			count, _ := io.Copy(ioutil.Discard, f)
 			pin.log.WithField("cid", cid).WithField("size", count).WithField("duration", time.Since(start)).Info("Store completed")
 			p.Status = "pinned"
-			pin.savePin(p)
+			pin.db.SavePin(p)
 			pin.broadcastPin(cid)
 			break
 		} else {
@@ -97,7 +96,7 @@ func (pin *PinManager) Pin(cid string) {
 	}
 	if tries == 20 {
 		p.Status = "timout"
-		pin.savePin(p)
+		pin.db.SavePin(p)
 		pin.log.WithField("cid", cid).Warn("Could not complete pin, will try again later")
 	}
 }
@@ -108,35 +107,4 @@ func (pin *PinManager) broadcastPin(cid string) {
 		Data: []byte(cid),
 	}
 	pin.net.SendMessage(&msg)
-}
-
-func (pin *PinManager) savePin(p *Pin) error {
-	return pin.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Pins"))
-		buf, err := json.Marshal(pin)
-		if err != nil {
-			return err
-		}
-		return b.Put([]byte(p.Cid), buf)
-	})
-}
-
-func (pin *PinManager) getPin(cid string) (p *Pin, err error) {
-	err = pin.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Pins"))
-		bytes := b.Get([]byte(cid))
-		if len(bytes) == 0 {
-			return errors.New("not found")
-		}
-		json.Unmarshal(bytes, p)
-		return nil
-	})
-	return p, err
-}
-
-type Pin struct {
-	Created time.Time
-	Cid     string // key
-	From    string
-	Status  string
 }

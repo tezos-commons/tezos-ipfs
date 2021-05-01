@@ -72,7 +72,7 @@ PinManager:
 
 # DB is needed always
 DB:
-  Bolt: /tmp/bolt.db
+  Storm: /tmp/bolt.db
 
 
 # General Settings

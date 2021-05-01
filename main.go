@@ -25,7 +25,7 @@ func main(){
 	c.Provide(config.NewConfig)
 	c.Provide(network.NewIPFS)
 	c.Provide(network.NewLightclient)
-	c.Provide(db.NewBoltDb)
+	c.Provide(db.NewStormDB)
 	c.Provide(crypto.GetPrivateKey)
 	c.Provide(cache.NewS3Cache)
 	c.Provide(app.NewGateway)

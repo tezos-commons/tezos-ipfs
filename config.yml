@@ -33,7 +33,7 @@ Log:
 #  API: localhost:5001
 
 DB:
-  Bolt: /tmp/bolt.db
+  Storm: /tmp/storm.db
 
 GatewayEnabled: true
 

@@ -101,7 +101,7 @@ type Storage struct {
 }
 
 type DB struct {
-	Bolt string `yaml:"Bolt"`
+	Storm string `yaml:"Storm"`
 }
 
 type Identity struct {

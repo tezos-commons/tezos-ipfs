@@ -1,71 +1,62 @@
 package db
 
 import (
-	"fmt"
-	"github.com/boltdb/bolt"
+	"github.com/asdine/storm/v3"
 	"github.com/sirupsen/logrus"
+	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/common"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/config"
-	"time"
 )
 
-type BoltDb struct {
+type StormDB struct {
 	log *logrus.Entry
-	bolt *bolt.DB
+	storm *storm.DB
 }
 
-func NewBoltDb(c *config.Config,l *logrus.Entry) (*BoltDb, *bolt.DB) {
-	d := BoltDb{}
+func NewStormDB(c *config.Config,l *logrus.Entry) *StormDB {
+	d := StormDB{}
 	d.log = l.WithField("source","boltdb")
 
-	db, err := bolt.Open(c.DB.Bolt, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	db, err := storm.Open(c.DB.Storm)
 	if err != nil {
-		return nil,nil
+		return nil
 	}
 
-	tx, err := db.Begin(true)
-	if err != nil {
-		d.log.Error(err)
-	}
-	defer tx.Rollback()
-	tx.CreateBucket([]byte("Config"))
-	tx.CreateBucket([]byte("Peers"))
-	tx.CreateBucket([]byte("Pins"))
-	tx.Commit()
+	d.storm = db
 
-	d.bolt = db
-
-	return &d,db
+	return &d
 }
 
-func (d *BoltDb) Write(bucketName, key, value []byte) {
-	err := d.bolt.Update(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(bucketName)
-		if err != nil {
-			return err
-		}
-		err = bkt.Put(key, value)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		d.log.Fatal(err)
+func (d *StormDB) Write(bucketName, key, value []byte) {
+	skey := append(bucketName, key...)
+	obj := common.KeyValue{
+		ID: 10,
+		Key: skey,
+		Value: value,
 	}
+
+	d.storm.Save(&obj)
 }
 
 
-func (d *BoltDb) Get(bucketName, key []byte) (val []byte, length int) {
-	err := d.bolt.View(func(tx *bolt.Tx) error {
-		bkt := tx.Bucket(bucketName)
-		if bkt == nil {
-			return fmt.Errorf("Bucket %q not found!", bucketName)
-		}
-		val = bkt.Get(key)
-		return nil
-	})
-	if err != nil {
-		d.log.Fatal(err)
-	}
-	return val, len(string(val))
+func (d *StormDB) Get(bucketName, key []byte) (val []byte, length int) {
+	skey := append(bucketName, key...)
+	obj := common.KeyValue{}
+	d.storm.One("Key", skey, &obj)
+	return obj.Value, len(obj.Value)
+}
+
+func (d *StormDB) SavePin(p *common.Pin) error {
+	return d.storm.Save(p)
+}
+
+func (d *StormDB) GetPin(cid string) (*common.Pin,error) {
+	obj := common.Pin{}
+	e := d.storm.One("Cid", cid, &obj)
+	return &obj,e
+}
+
+func (d *StormDB) PaginatedGetAllPin(pagesize, page int) ([]common.Pin,error){
+	var pins []common.Pin
+	err := d.storm.Range("ID", pagesize * (page - 1), pagesize * page, &pins, storm.Reverse())
+	return pins,err
 }

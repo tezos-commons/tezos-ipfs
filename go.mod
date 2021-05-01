@@ -3,7 +3,7 @@ module github.com/tezoscommons/tezos-ipfs
 go 1.15
 
 require (
-	github.com/asdine/storm/v3 v3.2.1 // indirect
+	github.com/asdine/storm/v3 v3.2.1
 	github.com/aws/aws-sdk-go v1.38.3
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.21.0-beta // indirect

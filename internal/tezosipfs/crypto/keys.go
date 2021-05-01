@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func GetPrivateKey(db *db.BoltDb, l *logrus.Entry) []byte {
+func GetPrivateKey(db *db.StormDB, l *logrus.Entry) []byte {
 	log := l.WithField("source","config")
 	if val,ok := os.LookupEnv("P2P_SECRETKEY"); ok {
 		log.Info("Using private key from env")
@@ -18,7 +18,7 @@ func GetPrivateKey(db *db.BoltDb, l *logrus.Entry) []byte {
 
 	val,ok := db.Get([]byte("Config"),[]byte("libp2p_private_key"))
 	if ok >= 1 {
-		log.Info("Using private key from BoltDb")
+		log.Info("Using private key from StormDB")
 		return val
 	}
 

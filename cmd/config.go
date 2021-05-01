@@ -100,8 +100,6 @@ func GetPublicIdentityShowCommand(c *dig.Container) *cobra.Command {
 	return root
 }
 
-
-
 func GetPrivateKeyCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "privkey",

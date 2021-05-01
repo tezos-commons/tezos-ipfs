@@ -49,6 +49,10 @@ func (d *StormDB) SavePin(p *common.Pin) error {
 	return d.storm.Save(p)
 }
 
+func (d *StormDB) RemovePin(p *common.Pin) error {
+	return d.storm.DeleteStruct(p)
+}
+
 func (d *StormDB) GetPin(cid string) (*common.Pin,error) {
 	obj := common.Pin{}
 	e := d.storm.One("Cid", cid, &obj)
@@ -59,4 +63,15 @@ func (d *StormDB) PaginatedGetAllPin(pagesize, page int) ([]common.Pin,error){
 	var pins []common.Pin
 	err := d.storm.Range("ID", pagesize * (page - 1), pagesize * page, &pins, storm.Reverse())
 	return pins,err
+}
+
+func (d *StormDB) IsBlocked(cid string) bool {
+	p,err := d.GetPin(cid)
+	if err != nil {
+		return false
+	}
+	if p.Status == "blocked" {
+		return true
+	}
+	return false
 }

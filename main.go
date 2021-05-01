@@ -33,6 +33,7 @@ func main(){
 	c.Provide(swarm.NewSwarm)
 	c.Provide(GetLog)
 	c.Provide(app.NewPinManager)
+	c.Provide(app.NewAdminAPI)
 
 	rootCmd := cmd.GetRootCommand(c)
 	if err := rootCmd.Execute(); err != nil {

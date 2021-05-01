@@ -236,3 +236,8 @@ func (l *Lightclient) LocalPin(cid string) error {
 	l.log.Error("attempted to pin something on lightclient....")
 	return nil
 }
+
+func (l *Lightclient) RemovePin(cid string) error {
+	l.log.Error("attempted to unpin something on lightclient....")
+	return nil
+}

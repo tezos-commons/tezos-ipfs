@@ -23,10 +23,8 @@ func GetRunCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "run",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := c.Invoke(func(g *app.Gateway, pin *app.PinManager) {
-				if g != nil {
-					go g.Run()
-				}
+			err := c.Invoke(func(a *app.Admin) {
+				go a.Run()
 			})
 
 			if err != nil {

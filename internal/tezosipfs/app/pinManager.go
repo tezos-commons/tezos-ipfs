@@ -101,6 +101,28 @@ func (pin *PinManager) Pin(cid string) {
 	}
 }
 
+
+func (pin *PinManager) UnPin(cid string) error {
+	p,err := pin.db.GetPin(cid)
+	if err != nil {
+		pin.log.Error(err)
+		return err
+	}
+	pin.db.SavePin(p)
+	return pin.net.RemovePin(cid)
+}
+
+func (pin *PinManager) Block(cid string) error {
+	p,err := pin.db.GetPin(cid)
+	if err != nil {
+		pin.log.Error(err)
+		return err
+	}
+	p.Status = "blocked"
+	pin.db.SavePin(p)
+	return pin.net.RemovePin(cid)
+}
+
 func (pin *PinManager) broadcastPin(cid string) {
 	msg := network.PubSubMessage{
 		Kind: "pinned",

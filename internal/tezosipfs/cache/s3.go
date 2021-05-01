@@ -80,3 +80,11 @@ func (c *S3Cache) StoreFile(cid string, reader io.ReadSeeker) {
 	c.log.WithField("cid",cid).WithField("bucket",c.config.Bucket).Trace("Upload Successful")
 }
 
+func (c *S3Cache) Uncache(cid string) {
+	key := aws.String(cid)
+	bucket := aws.String(c.config.Bucket)
+	c.s3client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: bucket,
+		Key: key,
+	})
+}

@@ -10,13 +10,14 @@ import (
 )
 
 type Config struct {
-	Gateway Gateway
-	Log Log
-	PinManager PinManager
-	DB DB
-	Peers Peers
-	PinManagerEnabled bool
-	GatewayEnabled bool
+	Gateway Gateway `yaml:"Gateway"`
+	Log Log `yaml:"Log"`
+	PinManager PinManager `yaml:"PinManager"`
+	DB DB `yaml:"DB"`
+	Peers Peers `yaml:"Peers"`
+	PinManagerEnabled bool `yaml:"PinManagerEnabled"`
+	GatewayEnabled bool `yaml:"GatewayEnabled"`
+	Admin Admin `yaml:"Admin"`
 	log *logrus.Entry
 	Identity Identity
 	lock *sync.Mutex
@@ -47,6 +48,11 @@ type Uploads struct {
 
 type PinManager struct {
 	API string `yaml:"API"`
+}
+
+type Admin struct {
+	Host string `yaml:"Host"`
+	Port int `yaml:"Port"`
 }
 
 type Yaml2Go struct {

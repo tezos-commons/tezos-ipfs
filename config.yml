@@ -15,9 +15,6 @@ Gateway:
       Key: minioadmin
       Endpoint: http://localhost:9000
       DisableSSL: true
-#  Backend:
-#    IPFS:
-#      API: localhost:5001
   CORS:
     AllowedDomains:
       - example.com
@@ -29,8 +26,8 @@ Log:
   Format: text
   File: /tmp/tezos-ipfs.log
 
-#PinManager:
-#  API: localhost:5001
+PinManager:
+  API: localhost:5001
 
 DB:
   Storm: /tmp/storm.db
@@ -46,6 +43,9 @@ Identity:
   Contact: "@johann on tezos-dev slack"
   Comment: "IPFS rocks"
 
+Admin:
+  Host: 127.0.0.1
+  Port: 5082
 
 # The Peers: Section of this config file gets reloaded immediately
 # if a daemon is running, you do NOT need to restart anything

@@ -12,6 +12,7 @@ type NetworkInterface interface {
 	 Subscribe() chan *PubSubMessage
 	 UploadAndPin(file io.Reader) (string,error)
      LocalPin(cid string) error
+	 RemovePin(cid string) error
 	 ID() string
 }
 

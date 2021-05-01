@@ -167,3 +167,7 @@ func (i *IPFS) LocalPin(cid string) (error){
 	}
 	return nil
 }
+
+func (i *IPFS) RemovePin(cid string) error {
+	return i.sh.Unpin(cid)
+}

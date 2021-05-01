@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/cache"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/config"
+	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/db"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/network"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/swarm"
 	"io/ioutil"
@@ -23,9 +24,10 @@ type Gateway struct {
 	accessTokens []config.AccessTokens
 	uploadTokens []config.AccessTokens
 	l            *sync.Mutex
+	db           *db.StormDB
 }
 
-func NewGateway(c *config.Config, net network.NetworkInterface, l *logrus.Entry, s *swarm.Swarm) *Gateway {
+func NewGateway(c *config.Config, net network.NetworkInterface, l *logrus.Entry, s *swarm.Swarm, db *db.StormDB) *Gateway {
 	if !c.GatewayEnabled {
 		l.Info("HTTP Gateway disabled")
 		return nil
@@ -33,6 +35,7 @@ func NewGateway(c *config.Config, net network.NetworkInterface, l *logrus.Entry,
 	g := Gateway{}
 	g.net = net
 	g.swarm = s
+	g.db = db
 	g.l = &sync.Mutex{}
 	g.log = l.WithField("source", "gateway")
 	g.port = c.Gateway.Server.Port
@@ -128,10 +131,17 @@ func (g *Gateway) ipfsRoute(c *gin.Context) {
 		}
 	}
 
+
 	cid := c.Param("cid")
+
 	headers := map[string]string{}
 	if len(cid) <= 12 || len(cid) >= 64 {
 		c.String(500, "invalid cid")
+		return
+	}
+
+	if g.db.IsBlocked(cid) {
+		c.String(404,"not found")
 		return
 	}
 	l, reader, err := g.cache.GetFile(cid)

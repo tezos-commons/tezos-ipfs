@@ -10,12 +10,12 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker images...
-      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3 ./docker/ipfs-s3
-      - docker build -t tezoscommons/tezos-ipfs:latest ./
+      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3-master ./docker/ipfs-s3
+      - docker build -t tezoscommons/tezos-ipfs:master ./
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Pushing the Docker image to Dockerhub
-      - docker push tezoscommons/tezos-ipfs:ipfs-s3
-      - docker push tezoscommons/tezos-ipfs:latest
+      - docker push tezoscommons/tezos-ipfs:ipfs-s3-master
+      - docker push tezoscommons/tezos-ipfs:master
 

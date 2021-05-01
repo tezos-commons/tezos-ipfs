@@ -3,18 +3,19 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Running CI for $CODEBUILD_WEBHOOK_HEAD_REF
+      - echo Running CI for $(git branch --show-current)
       - echo Logging into Dockerhub
       - docker login --username tezoscommons --password $DH_PASSWORD
   build:
     commands:
       - echo Build started on `date`
       - echo Building the Docker images...
-      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3-$CODEBUILD_WEBHOOK_HEAD_REF ./docker/ipfs-s3
-      - docker build -t tezoscommons/tezos-ipfs:$CODEBUILD_WEBHOOK_HEAD_REF ./
+      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3-$(git branch --show-current) ./docker/ipfs-s3
+      - docker build -t tezoscommons/tezos-ipfs:$(git branch --show-current) ./
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Pushing the Docker image to Dockerhub
-      - docker push tezoscommons/tezos-ipfs:ipfs-s3-$CODEBUILD_WEBHOOK_HEAD_REF
-      - docker push tezoscommons/tezos-ipfs:$CODEBUILD_WEBHOOK_HEAD_REF
+      - docker push tezoscommons/tezos-ipfs:ipfs-s3-$(git branch --show-current)
+      - docker push tezoscommons/tezos-ipfs:$(git branch --show-current)
+

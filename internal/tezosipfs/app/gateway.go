@@ -133,7 +133,6 @@ func (g *Gateway) ipfsRoute(c *gin.Context) {
 
 
 	cid := c.Param("cid")
-
 	headers := map[string]string{}
 	if len(cid) <= 12 || len(cid) >= 64 {
 		c.String(500, "invalid cid")

@@ -135,9 +135,10 @@ func NewConfig() *Config{
 	viper.AddConfigPath("$HOME/.tezos-ipfs")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config")
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Errorf("Fatal error config file: %s \n", err)
+		os.Exit(1)
 	}
 	c := Config{}
 	c.lock = &sync.Mutex{}

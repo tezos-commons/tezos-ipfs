@@ -24,7 +24,6 @@ func NewS3Cache(c *config.Config, l *logrus.Entry) *S3Cache {
 	s.config = &c.Gateway.Storage.S3
 	s.log = l.WithField("source","s3-file-cache")
 
-	// Configure to use MinIO Server
 	s3Config := &aws.Config{
 		Credentials:      credentials.NewStaticCredentials(c.Gateway.Storage.S3.Key, c.Gateway.Storage.S3.Secret, ""),
 		Endpoint:         aws.String(c.Gateway.Storage.S3.Endpoint),
@@ -35,6 +34,14 @@ func NewS3Cache(c *config.Config, l *logrus.Entry) *S3Cache {
 	newSession := session.New(s3Config)
 	s3Client := s3.New(newSession)
 	downloader := s3manager.NewDownloader(newSession)
+
+	// auto create bucket if possible
+	bucket := aws.String(c.Gateway.Storage.S3.Bucket)
+	cparams := &s3.CreateBucketInput{
+		Bucket: bucket,
+	}
+	s3Client.CreateBucket(cparams)
+
 	s.downloader = downloader
 	s.s3client = s3Client
 

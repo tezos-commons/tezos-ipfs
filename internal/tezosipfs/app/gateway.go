@@ -97,6 +97,8 @@ func (g *Gateway) Run() {
 	r.GET("/ipfs/:cid", g.ipfsRoute)
 	r.POST("/upload", g.uploadRoute)
 	r.POST("/upload/once", g.onceUploadRoute)
+	r.POST("/upload/store_and_cache", g.oncStoreAndCachedUploadRoute)
+	r.POST("/upload/threshold", g.customThreshold)
 	r.GET("/network", g.networkRoute)
 	r.Run("0.0.0.0:" + strconv.Itoa(g.port))
 }
@@ -269,16 +271,139 @@ func (g *Gateway) listen() {
  */
 func (g *Gateway) onceUploadRoute(c *gin.Context) {
 
+	check, ticker, done2 := g.prepareGuaranteedUpload(c)
+	if done2 {
+		return
+	}
+
+outer:
+	for {
+		select {
+		case <-ticker.C:
+			// got timeout
+			ticker.Stop()
+			check.lock.Lock()
+			g.log.WithField("cid", check.res.Cid).Warn("Once has reached timeout")
+			check.res.Status = "Timeout"
+			check.lock.Unlock()
+			break outer
+
+		case <-check.Notify:
+			check.lock.Lock()
+			if *check.res.NumberStored >= 1 {
+				check.res.Status = "Success"
+				check.lock.Unlock()
+				break outer
+			}
+			check.lock.Unlock()
+		}
+	}
+
+	check.lock.Lock()
+	defer check.lock.Unlock()
+	c.JSON(200, check.res)
+}
+
+/*
+ * Returns after timeout or after at least one node
+ * we trust has cached the pin
+ */
+func (g *Gateway) oncStoreAndCachedUploadRoute(c *gin.Context) {
+
+	check, ticker, done2 := g.prepareGuaranteedUpload(c)
+	if done2 {
+		return
+	}
+
+outer:
+	for {
+		select {
+		case <-ticker.C:
+			// got timeout
+			ticker.Stop()
+			check.lock.Lock()
+			g.log.WithField("cid", check.res.Cid).Warn("StoreAndCached has reached timeout")
+			check.res.Status = "Timeout"
+			check.lock.Unlock()
+			break outer
+
+		case <-check.Notify:
+			check.lock.Lock()
+			if *check.res.NumberStored >= 1 && *check.res.NumberCached >= 1 {
+				check.res.Status = "Success"
+				check.lock.Unlock()
+				break outer
+			}
+			check.lock.Unlock()
+
+		}
+	}
+
+	check.lock.Lock()
+	defer check.lock.Unlock()
+	c.JSON(200, check.res)
+}
+
+/*
+ * Returns after timeout or custom guarantees
+ */
+func (g *Gateway) customThreshold(c *gin.Context) {
+
+	check, ticker, done2 := g.prepareGuaranteedUpload(c)
+	if done2 {
+		return
+	}
+
+	MustStore, _ := strconv.Atoi(c.PostForm("store"))
+	MustCache, _ := strconv.Atoi(c.PostForm("cache"))
+
+outer:
+	for {
+		select {
+		case <-ticker.C:
+			// got timeout
+			ticker.Stop()
+			check.lock.Lock()
+			g.log.WithField("custom_store", MustStore).
+				WithField("custom_cache", MustCache).
+				WithField("cid", check.res.Cid).Warn("Custom Store has reached timeout")
+			check.res.Status = "Timeout"
+			check.lock.Unlock()
+			break outer
+
+		case <-check.Notify:
+			check.lock.Lock()
+			if *check.res.NumberStored >= MustStore && *check.res.NumberCached >= MustCache {
+				check.res.Status = "Success"
+				check.lock.Unlock()
+				break outer
+			}
+			check.lock.Unlock()
+
+		}
+	}
+
+	check.lock.Lock()
+	defer check.lock.Unlock()
+	c.JSON(200, check.res)
+}
+
+func (g *Gateway) prepareGuaranteedUpload(c *gin.Context) (*PendingUpload, *time.Ticker, bool) {
+
 	timeout_duration := 30 * time.Second
+	CustomTimeout, _ := strconv.Atoi(c.PostForm("timeout"))
+	if CustomTimeout >= 5 {
+		timeout_duration = time.Duration(CustomTimeout) * time.Second
+	}
 
 	if g.checkAccessToken(c) {
-		return
+		return nil, nil, true
 	}
 
 	net := g.getNetwork()
 	if *net.NumberStores == 0 {
-		c.String(500, "Not enough Storge nodes configured!")
-		return
+		c.String(500, "Not enough Nodes configured!")
+		return nil, nil, true
 	}
 	net.NumberCached = intptr(0)
 	net.NumberStored = intptr(0)
@@ -292,41 +417,13 @@ func (g *Gateway) onceUploadRoute(c *gin.Context) {
 
 	cid, done := g.storeFile(c)
 	if done {
-		return
+		return nil, nil, true
 	}
 
 	check.res.Cid = cid
 	g.pendingUploads[cid] = check
 	ticker := time.NewTicker(timeout_duration)
-
-	// wait until we got feedback from others
-	select {
-	case <-ticker.C:
-		// got timeout
-		ticker.Stop()
-		check.lock.Lock()
-		g.log.WithField("cid", check.res.Cid).Warn("Once has reached timeout")
-		check.res.Status = "Timeout"
-		check.lock.Unlock()
-		break
-
-	case <-check.Notify:
-		check.lock.Lock()
-		if *check.res.NumberStored >= 1 {
-			check.res.Status = "Success"
-			check.lock.Unlock()
-			break
-		}
-		check.lock.Unlock()
-
-	}
-
-	// if we are here either success or timeout
-	// either way, ship response
-
-	check.lock.Lock()
-	defer check.lock.Unlock()
-	c.JSON(200, check.res)
+	return check, ticker, false
 }
 
 func (g *Gateway) checkAccessToken(c *gin.Context) bool {

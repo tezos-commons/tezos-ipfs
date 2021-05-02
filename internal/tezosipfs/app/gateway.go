@@ -504,14 +504,14 @@ func getType(buf []byte) string {
 }
 
 type UploadResponse struct {
-	Cid          string `json:",omitempty"`
-	CacheNodes   []CacheNode
-	StorageNodes []StorageNode
-	NumberCaches *int   `json:",omitempty"`
-	NumberStores *int   `json:",omitempty"`
-	NumberCached *int   `json:",omitempty"`
-	NumberStored *int   `json:",omitempty"`
-	Status       string `json:",omitempty"`
+	Cid          string        `json:",omitempty"`
+	CacheNodes   []CacheNode   `json:",omitempty"`
+	StorageNodes []StorageNode `json:",omitempty"`
+	NumberCaches *int          `json:",omitempty"`
+	NumberStores *int          `json:",omitempty"`
+	NumberCached *int          `json:",omitempty"`
+	NumberStored *int          `json:",omitempty"`
+	Status       string        `json:",omitempty"`
 }
 
 type StorageNode struct {

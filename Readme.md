@@ -16,4 +16,6 @@ For documentation examples, please see [Common use cases](./docs/common_use.md)
 # API Docs
 
 [Gateway API](./docs/gateway.md)
+
+
 [Admin API](./docs/admin.md)

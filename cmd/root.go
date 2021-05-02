@@ -11,20 +11,25 @@ import (
 
 func GetRootCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
-		Use:   "tipfs",
+		Use: "tipfs",
 	}
 
-	root.AddCommand(GetConfigCommand(c),GetRunCommand(c))
+	root.AddCommand(GetConfigCommand(c), GetRunCommand(c))
 	root.AddCommand(GetToolsCommand(c))
 	return root
 }
 
 func GetRunCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
-		Use:   "run",
+		Use: "run",
 		Run: func(cmd *cobra.Command, args []string) {
-			err := c.Invoke(func(a *app.Admin) {
-				go a.Run()
+			err := c.Invoke(func(a *app.Admin, g *app.Gateway) {
+				if a != nil {
+					go a.Run()
+				}
+				if g != nil {
+					go g.Run()
+				}
 			})
 
 			if err != nil {

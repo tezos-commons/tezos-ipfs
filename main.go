@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func main(){
+func main() {
 	c := dig.New()
 	c.Provide(config.NewConfig)
 	c.Provide(network.NewIPFS)
@@ -41,11 +41,9 @@ func main(){
 		os.Exit(1)
 	}
 
-
 }
 
-
-func GetLog (c *config.Config) *logrus.Entry{
+func GetLog(c *config.Config) *logrus.Entry {
 	l := logrus.New()
 	if c.Log.Elasticsearch != "" {
 		client, err := elastic.NewClient(elastic.SetURL("http://localhost:9200"))
@@ -60,7 +58,7 @@ func GetLog (c *config.Config) *logrus.Entry{
 	}
 
 	if c.Log.File != "" {
-		logFile,e := os.OpenFile(c.Log.File,os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		logFile, e := os.OpenFile(c.Log.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if e != nil {
 			fmt.Println(e)
 		}
@@ -74,5 +72,5 @@ func GetLog (c *config.Config) *logrus.Entry{
 	if c.Log.Format == "json" {
 		l.SetFormatter(&logrus.JSONFormatter{})
 	}
-	return l.WithField("starttime",time.Now().Unix())
+	return l.WithField("starttime", time.Now().Unix())
 }

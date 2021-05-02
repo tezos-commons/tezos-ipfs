@@ -65,6 +65,7 @@ Gateway:
 # you then MUST run a full IPFS node
 # if you want to store data yourself
 # enter the IPFS API endpoint
+PinManagerEnabled: true
 PinManager:
   API: localhost:5001
   MaxSize: 50 # in MB

@@ -210,14 +210,16 @@ outer:
 				check.res.Status = "Success"
 				check.lock.Unlock()
 				break outer
+			} else {
+				check.lock.Unlock()
 			}
-			check.lock.Unlock()
 		}
 	}
 
 	check.lock.Lock()
 	defer check.lock.Unlock()
 	c.JSON(200, check.res)
+	delete(g.pendingUploads, check.res.Cid)
 }
 
 /*
@@ -258,6 +260,7 @@ outer:
 	check.lock.Lock()
 	defer check.lock.Unlock()
 	c.JSON(200, check.res)
+	delete(g.pendingUploads, check.res.Cid)
 }
 
 /*
@@ -302,6 +305,7 @@ outer:
 	check.lock.Lock()
 	defer check.lock.Unlock()
 	c.JSON(200, check.res)
+	delete(g.pendingUploads, check.res.Cid)
 }
 
 func (g *Gateway) prepareGuaranteedUpload(c *gin.Context) (*PendingUpload, *time.Ticker, bool) {

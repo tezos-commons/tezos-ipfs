@@ -36,11 +36,11 @@ type Lightclient struct {
 	ftopic           *pubsub.Topic
 	pubsubscriptions []chan *PubSubMessage
 	msgcache         *lru.Cache
+	cm               *connmgr.BasicConnMgr
 }
 
 var options = []libp2p.Option{
 	libp2p.NATPortMap(),
-	libp2p.ConnectionManager(connmgr.NewConnManager(100, 600, time.Minute)),
 	libp2p.EnableAutoRelay(),
 	libp2p.EnableNATService(),
 	libp2p.Transport(libp2pquic.NewTransport),
@@ -56,6 +56,8 @@ func NewLightclient(privkey []byte, log *logrus.Entry) *Lightclient {
 }
 
 func (l *Lightclient) Setup() {
+	cm := connmgr.NewConnManager(20, 50, time.Minute)
+	options = append(options, libp2p.ConnectionManager(cm))
 	ctx, _ := context.WithCancel(context.Background())
 	ds, err := ipfslite.BadgerDatastore("/tmp/badger")
 	if err != nil {
@@ -103,6 +105,7 @@ func (l *Lightclient) Setup() {
 	lite.Bootstrap(ipfslite.DefaultBootstrapPeers())
 	l.client = lite
 	l.h = h
+	l.cm = cm
 
 	l.log.Info("My peerID is: ", h.ID().String())
 }
@@ -145,6 +148,10 @@ func (l *Lightclient) Connect(peers []string) error {
 			l.log.Warn("can not parse peerID: ", err)
 			continue
 		}
+		if l.cm.IsProtected(p, "tezos-ipfs") {
+			continue
+		}
+		go l.cm.Protect(p, "tezos-ipfs")
 		pinfo, err := l.dht.FindPeer(ctx, p)
 		if err != nil {
 			l.log.Warn("error creating pinfo: ", err)

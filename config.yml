@@ -1,12 +1,6 @@
 Gateway:
   Server:
     Port: 8085
-    AccessTokens:
-      - name: Test
-        token: secret
-    UploadToken:
-      - name: UploadToken
-        token: secret
   Storage:
     S3: # this config here is actually a minio server
       Region: us-east-1
@@ -15,9 +9,6 @@ Gateway:
       Key: minioadmin
       Endpoint: http://localhost:9000
       DisableSSL: true
-  CORS:
-    AllowedDomains:
-      - example.com
   Uploads:
     Enabled: true
     MaxSize: 50 # MB
@@ -26,6 +17,7 @@ Log:
   Format: text
   File: /tmp/tezos-ipfs.log
 
+PinManagerEnbled: false
 PinManager:
   API: localhost:5001
 
@@ -66,3 +58,6 @@ Peers:
   # If you run a Gateway, make sure tipfs is conencted to
   TrustedPeers:
     - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
+    - 12D3KooWSb2MqWGib529J5vR2nW9FpuNh6L2y71M9zNLwiFPa4ez
+    - 12D3KooWK4Typh8no29AF2iCJ5QEDRZAbFrWLavE5v3G1NWQbKwM
+    - 12D3KooWP1F2VnTpS9guj9ETnyeUe1eMsreF5XNAhZTkTqVw2m5V

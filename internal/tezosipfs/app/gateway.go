@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"context"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -64,18 +63,6 @@ func NewGateway(c *config.Config, net network.NetworkInterface, l *logrus.Entry,
 	return &g
 }
 
-func (g *Gateway) watchConfig(c *config.Config) {
-	ch := c.GetUpdates()
-	for {
-		n := <-ch
-		g.l.Lock()
-		g.log.Info("updating config")
-		g.accessTokens = n.Gateway.Server.AccessTokens
-		g.uploadTokens = n.Gateway.Server.UploadToken
-		g.l.Unlock()
-	}
-}
-
 func (g *Gateway) Run() {
 	go g.listen()
 	g.log.Info("Starting gateway on port :" + strconv.Itoa(g.port))
@@ -101,35 +88,6 @@ func (g *Gateway) Run() {
 	r.POST("/upload/threshold", g.customThreshold)
 	r.GET("/network", g.networkRoute)
 	r.Run("0.0.0.0:" + strconv.Itoa(g.port))
-}
-
-func (g *Gateway) autocache() {
-	ch := g.net.Subscribe()
-	for {
-		msg := <-ch
-		if msg.Kind == "new_object" && g.swarm.CacheFor(msg.From) {
-			g.log.WithField("source", msg.From).WithField("cid", string(msg.Data)).Trace("pin request")
-			if g.swarm.CacheFor(msg.From) {
-				g.log.WithField("cid", string(msg.Data)).WithField("origin", msg.From).Info("Auto-cache")
-				go g.cacheFile(string(msg.Data))
-			}
-		}
-	}
-}
-
-func (g *Gateway) cacheFile(cid string) {
-	reader, err := g.net.GetFile(context.Background(), cid)
-	if err != nil {
-		g.log.Error(err)
-	}
-	buf, _ := ioutil.ReadAll(reader)
-	if g.cache != nil {
-		g.cache.StoreFile(cid, bytes.NewReader(buf))
-		g.log.WithField("cid", cid).Trace("Stored in cache")
-		g.broadcastCache(cid)
-	} else {
-		g.log.WithField("cid", cid).Error("got cache request, but have no cache configured...")
-	}
 }
 
 func (g *Gateway) ipfsRoute(c *gin.Context) {
@@ -170,13 +128,10 @@ func (g *Gateway) ipfsRoute(c *gin.Context) {
 }
 
 func (g *Gateway) networkRoute(c *gin.Context) {
-
 	if g.checkAccessToken(c) {
 		return
 	}
-
 	res := g.getNetwork()
-
 	c.JSON(200, res)
 }
 
@@ -213,56 +168,17 @@ func (g *Gateway) getNetwork() UploadResponse {
 }
 
 func (g *Gateway) uploadRoute(c *gin.Context) {
-
 	if g.checkUploadToken(c) {
 		return
 	}
-
 	cid, done := g.storeFile(c)
 	if done {
 		return
 	}
-
 	res := UploadResponse{
 		Cid: cid,
 	}
 	c.JSON(200, res)
-}
-
-func (g *Gateway) listen() {
-	ch := g.net.Subscribe()
-	for {
-		msg := <-ch
-		if msg.Kind == "cached" {
-			cid := string(msg.Data)
-			if val, ok := g.pendingUploads[cid]; ok {
-				val.lock.Lock()
-				*val.res.NumberCached++
-				for i, _ := range val.res.CacheNodes {
-					if val.res.CacheNodes[i].PeerId == msg.From {
-						val.res.CacheNodes[i].Cached = true
-					}
-				}
-				val.lock.Unlock()
-				val.Notify <- struct{}{}
-			}
-		}
-		if msg.Kind == "pinned" {
-			cid := string(msg.Data)
-			if val, ok := g.pendingUploads[cid]; ok {
-				val.lock.Lock()
-				*val.res.NumberStored++
-				for i, _ := range val.res.StorageNodes {
-					if val.res.StorageNodes[i].PeerId == msg.From {
-						val.res.StorageNodes[i].Stored = true
-					}
-				}
-				val.lock.Unlock()
-				val.Notify <- struct{}{}
-
-			}
-		}
-	}
 }
 
 /*
@@ -424,121 +340,4 @@ func (g *Gateway) prepareGuaranteedUpload(c *gin.Context) (*PendingUpload, *time
 	g.pendingUploads[cid] = check
 	ticker := time.NewTicker(timeout_duration)
 	return check, ticker, false
-}
-
-func (g *Gateway) checkAccessToken(c *gin.Context) bool {
-	if len(g.accessTokens) != 0 {
-		tokenH := c.Request.Header["Token"]
-		if len(tokenH) == 0 {
-			c.String(401, "need upload token")
-			return true
-		}
-		token := tokenH[0]
-		pass := false
-		for _, t := range g.accessTokens {
-			if t.Token == token {
-				pass = true
-			}
-		}
-		if pass == false {
-			c.String(401, "Invalid token")
-			return true
-		}
-	}
-	return false
-}
-
-func (g *Gateway) checkUploadToken(c *gin.Context) bool {
-	if len(g.accessTokens) != 0 {
-		tokenH := c.Request.Header["Token"]
-		if len(tokenH) == 0 {
-			c.String(401, "need upload token")
-			return true
-		}
-		token := tokenH[0]
-		pass := false
-		for _, t := range g.accessTokens {
-			if t.Token == token {
-				pass = true
-			}
-		}
-		if pass == false {
-			c.String(401, "Invalid token")
-			return true
-		}
-	}
-	return false
-}
-
-func (g *Gateway) storeFile(c *gin.Context) (string, bool) {
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.String(500, err.Error())
-		return "", true
-	}
-
-	f, err := file.Open()
-	if err != nil {
-		c.String(500, err.Error())
-		return "", true
-	}
-	cid, err := g.net.UploadAndPin(f)
-	if err != nil {
-		c.String(500, err.Error())
-		return "", true
-	}
-	return cid, false
-}
-
-func (g *Gateway) broadcastCache(cid string) {
-	msg := network.PubSubMessage{
-		Kind: "cached",
-		Data: []byte(cid),
-	}
-	g.net.SendMessage(&msg)
-}
-
-func getType(buf []byte) string {
-	// TODO
-	return ""
-}
-
-type UploadResponse struct {
-	Cid          string        `json:",omitempty"`
-	CacheNodes   []CacheNode   `json:",omitempty"`
-	StorageNodes []StorageNode `json:",omitempty"`
-	NumberCaches *int          `json:",omitempty"`
-	NumberStores *int          `json:",omitempty"`
-	NumberCached *int          `json:",omitempty"`
-	NumberStored *int          `json:",omitempty"`
-	Status       string        `json:",omitempty"`
-}
-
-type StorageNode struct {
-	Name         string `json:",omitempty"`
-	Organization string `json:",omitempty"`
-	Contact      string `json:",omitempty"`
-	Comment      string `json:",omitempty"`
-	PeerId       string `json:",omitempty"`
-	Stored       bool   `json:",omitempty"`
-}
-
-type CacheNode struct {
-	Name         string `json:",omitempty"`
-	Organization string `json:",omitempty"`
-	Contact      string `json:",omitempty"`
-	Comment      string `json:",omitempty"`
-	PeerId       string `json:",omitempty"`
-	Cached       bool   `json:",omitempty"`
-}
-
-type PendingUpload struct {
-	Notify chan struct{}
-	lock   *sync.Mutex
-	res    *UploadResponse
-}
-
-func intptr(i int) *int {
-	a := i
-	return &a
 }

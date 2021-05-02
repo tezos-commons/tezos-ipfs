@@ -2,7 +2,7 @@
 
 `tipfs` helps coordinate storage replication, and quick distribution of objects on IPFS,
 it can run with either an external, full IPFS node, or with a minimal embedded IPFS node depending on the use case.
-To communicate with other instances, we only need the default IPFS PubSub implementation, if you run wihtout a
+To communicate with other instances, we only need the default IPFS PubSub implementation, if you run without a
 external node this is enabled automatically, if you use an existing IPFS node, make sure it has [PubSub enabled](https://docs.ipfs.io/how-to/configure-node/#pubsub),
 specifically, the newer [gossipsub](https://github.com/libp2p/specs/tree/master/pubsub/gossipsub) implementation.
 
@@ -16,3 +16,4 @@ For documentation examples, please see [Common use cases](./docs/common_use.md)
 # API Docs
 
 [Gateway API](./docs/gateway.md)
+[Admin API](./docs/admin.md)

@@ -237,7 +237,7 @@ func (l *Lightclient) UploadAndPin(file io.Reader) (string, error) {
 	}
 	l.SendMessage(&pinRequest)
 	l.log.WithField("cid", fnode.Cid()).Trace("sending pin request")
-	return fnode.Cid().String(), err
+	return c.Hash().B58String(), err
 }
 
 func (l *Lightclient) LocalPin(cid string) error {

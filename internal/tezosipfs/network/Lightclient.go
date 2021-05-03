@@ -236,7 +236,7 @@ func (l *Lightclient) UploadAndPin(file io.Reader) (string, error) {
 		Kind: "new_object",
 	}
 	l.SendMessage(&pinRequest)
-	l.log.WithField("cid", fnode.Cid()).Trace("sending pin request")
+	l.log.WithField("cid", c.Hash().B58String()).Trace("sending pin request")
 	return c.Hash().B58String(), err
 }
 

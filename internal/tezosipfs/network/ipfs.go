@@ -1,6 +1,7 @@
 package network
 
 import (
+	"archive/tar"
 	"context"
 	"encoding/json"
 	"github.com/google/uuid"
@@ -69,7 +70,8 @@ func (i *IPFS) GetFile(ctx context.Context, cidStr string) (io.Reader, error) {
 	if err != nil {
 		i.log.Error("Cant get file ", err)
 	}
-	return resp.Output, nil
+
+	return tar.NewReader(resp.Output), nil
 }
 
 func (i *IPFS) Connect(peers []string) error {

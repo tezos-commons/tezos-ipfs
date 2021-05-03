@@ -230,8 +230,9 @@ func (l *Lightclient) UploadAndPin(file io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	c, _ := cid.Decode(fnode.Cid().String())
 	pinRequest := PubSubMessage{
-		Data: []byte(fnode.Cid().String()),
+		Data: []byte(c.Hash().B58String()),
 		Kind: "new_object",
 	}
 	l.SendMessage(&pinRequest)

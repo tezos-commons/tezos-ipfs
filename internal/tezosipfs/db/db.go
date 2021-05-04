@@ -75,3 +75,34 @@ func (d *StormDB) IsBlocked(cid string) bool {
 	}
 	return false
 }
+
+func (d *StormDB) SaveCache(p *common.Cache) error {
+	return d.storm.Save(p)
+}
+
+func (d *StormDB) RemoveCache(p *common.Cache) error {
+	return d.storm.DeleteStruct(p)
+}
+
+func (d *StormDB) GetCache(cid string) (*common.Cache, error) {
+	obj := common.Cache{}
+	e := d.storm.One("Cid", cid, &obj)
+	return &obj, e
+}
+
+func (d *StormDB) PaginatedGetAllCache(pagesize, page int) ([]common.Cache, error) {
+	var Caches []common.Cache
+	err := d.storm.Range("ID", pagesize*(page-1), pagesize*page, &Caches, storm.Reverse())
+	return Caches, err
+}
+
+func (d *StormDB) Cached(cid string) bool {
+	p, err := d.GetCache(cid)
+	if err != nil {
+		return false
+	}
+	if p.Status == "blocked" {
+		return true
+	}
+	return false
+}

@@ -13,6 +13,7 @@ func (g *Gateway) cacheFile(cid string) {
 	if err != nil {
 		g.log.Error(err)
 	}
+	// todo split reader if possible
 	buf, _ := ioutil.ReadAll(reader)
 	if g.cache != nil {
 		g.cache.StoreFile(cid, bytes.NewReader(buf))
@@ -117,6 +118,7 @@ type CacheNode struct {
 }
 
 type PendingUpload struct {
+	ID     string
 	Notify chan struct{}
 	lock   *sync.Mutex
 	res    *UploadResponse

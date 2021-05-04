@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/cache"
+	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/common"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/config"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/db"
 	"github.com/tezoscommons/tezos-ipfs/internal/tezosipfs/network"
@@ -124,6 +125,15 @@ func (g *Gateway) ipfsRoute(c *gin.Context) {
 	g.log.WithField("cid", cid).Trace("Found via Network")
 	buf, _ := ioutil.ReadAll(reader)
 	g.cache.StoreFile(cid, bytes.NewReader(buf))
+	// save a record in db for future use
+	cacheEntry := common.Cache{
+		Created: time.Now(),
+		Cid:     cid,
+		From:    "gateway",
+		Status:  "cached",
+		Size:    int64(len(buf)),
+	}
+	g.db.SaveCache(&cacheEntry)
 	c.DataFromReader(200, int64(len(buf)), getType(buf), bytes.NewReader(buf), headers)
 }
 
@@ -310,7 +320,7 @@ outer:
 
 func (g *Gateway) prepareGuaranteedUpload(c *gin.Context) (*PendingUpload, *time.Ticker, bool) {
 
-	timeout_duration := 30 * time.Second
+	timeout_duration := 5 * time.Second
 	CustomTimeout, _ := strconv.Atoi(c.PostForm("timeout"))
 	if CustomTimeout >= 5 {
 		timeout_duration = time.Duration(CustomTimeout) * time.Second

@@ -12,6 +12,7 @@ import (
 func GetToolsCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "tools",
+		Short: "extra commands",
 	}
 	root.AddCommand(GetGenKeysCommand(c))
 	return root
@@ -20,12 +21,13 @@ func GetToolsCommand(c *dig.Container) *cobra.Command {
 func GetGenKeysCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "genkeys",
+		Short: "Generate new keys, no change to existing ones",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			priv, pub, _ := crypto.GenerateKeyPair(crypto.Ed25519, 256)
-			bpriv,_ := crypto.MarshalPrivateKey(priv)
-			bpub,_ := crypto.MarshalPublicKey(pub)
-			identity,_ := peer.IDFromPublicKey(pub)
+			bpriv, _ := crypto.MarshalPrivateKey(priv)
+			bpub, _ := crypto.MarshalPublicKey(pub)
+			identity, _ := peer.IDFromPublicKey(pub)
 
 			fmt.Println("\nIdentity:")
 			fmt.Println(identity)
@@ -40,4 +42,3 @@ func GetGenKeysCommand(c *dig.Container) *cobra.Command {
 	}
 	return root
 }
-

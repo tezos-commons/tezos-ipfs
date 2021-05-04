@@ -15,17 +15,19 @@ import (
 func GetConfigCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "config",
+		Short: "mange config and keys",
 	}
-	root.AddCommand(GetConfigShowCommand(c),GetPublicKeyCommand(c),GetPrivateKeyCommand(c))
+	root.AddCommand(GetConfigShowCommand(c), GetPublicKeyCommand(c), GetPrivateKeyCommand(c))
 	return root
 }
 
 func GetConfigShowCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "show",
+		Short: "display parsed config file",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.Invoke(func(c *config.Config) {
-				yb,_ := yaml.Marshal(c)
+				yb, _ := yaml.Marshal(c)
 				fmt.Println(string(yb))
 			})
 		},
@@ -36,27 +38,28 @@ func GetConfigShowCommand(c *dig.Container) *cobra.Command {
 func GetPublicKeyCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "pubkey",
+		Short: "Show light-client publick key",
 	}
-	root.AddCommand(GetPublicKeyShowCommand(c),GetPublicIdentityShowCommand(c))
+	root.AddCommand(GetPublicKeyShowCommand(c), GetPublicIdentityShowCommand(c))
 	return root
 }
-
 
 func GetPublicKeyShowCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "peerId",
+		Short: "show light client peer id",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := c.Invoke(func(privkey []byte, log *logrus.Entry) {
-				priv,err := crypto.UnmarshalPrivateKey(privkey)
+				priv, err := crypto.UnmarshalPrivateKey(privkey)
 				if err != nil {
-					log.Fatal(err,"1")
+					log.Fatal(err, "1")
 				}
-				std,_ := crypto.PrivKeyToStdKey(priv)
-				_,pub,err := crypto.KeyPairFromStdKey(std)
+				std, _ := crypto.PrivKeyToStdKey(priv)
+				_, pub, err := crypto.KeyPairFromStdKey(std)
 				if err != nil {
 					log.Fatal(err)
 				}
-				identity,_ := peer.IDFromPublicKey(pub)
+				identity, _ := peer.IDFromPublicKey(pub)
 				fmt.Println("\nResult:")
 				fmt.Println(identity.String())
 				fmt.Println("\nPlease note:\nIf you connect this instance of tipfs to a external IPFS node, we will se its keys instead!")
@@ -69,22 +72,22 @@ func GetPublicKeyShowCommand(c *dig.Container) *cobra.Command {
 	return root
 }
 
-
 func GetPublicIdentityShowCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "show",
+		Short: "show libp2p peer id",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := c.Invoke(func(privkey []byte, log *logrus.Entry) {
-				priv,err := crypto.UnmarshalPrivateKey(privkey)
+				priv, err := crypto.UnmarshalPrivateKey(privkey)
 				if err != nil {
-					log.Fatal(err,"1")
+					log.Fatal(err, "1")
 				}
-				std,_ := crypto.PrivKeyToStdKey(priv)
-				_,pub,err := crypto.KeyPairFromStdKey(std)
+				std, _ := crypto.PrivKeyToStdKey(priv)
+				_, pub, err := crypto.KeyPairFromStdKey(std)
 				if err != nil {
 					log.Fatal(err)
 				}
-				pubBytes,err := crypto.MarshalPublicKey(pub)
+				pubBytes, err := crypto.MarshalPublicKey(pub)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -103,22 +106,23 @@ func GetPublicIdentityShowCommand(c *dig.Container) *cobra.Command {
 func GetPrivateKeyCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "privkey",
+		Short: "Show private key",
 	}
 	root.AddCommand(GetPrivateKeyShowCommand(c))
 	return root
 }
 
-
 func GetPrivateKeyShowCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
 		Use:   "show",
+		Short: "Show private key",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := c.Invoke(func(privkey []byte, log *logrus.Entry) {
-				priv,err := crypto.UnmarshalPrivateKey(privkey)
+				priv, err := crypto.UnmarshalPrivateKey(privkey)
 				if err != nil {
-					log.Fatal(err,"1")
+					log.Fatal(err, "1")
 				}
-				privBytes,err := crypto.MarshalPrivateKey(priv)
+				privBytes, err := crypto.MarshalPrivateKey(priv)
 				if err != nil {
 					log.Fatal(err)
 				}

@@ -21,7 +21,8 @@ func GetRootCommand(c *dig.Container) *cobra.Command {
 
 func GetRunCommand(c *dig.Container) *cobra.Command {
 	var root = &cobra.Command{
-		Use: "run",
+		Use:   "run",
+		Short: "run daemon",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := c.Invoke(func(a *app.Admin, g *app.Gateway) {
 				if a != nil {

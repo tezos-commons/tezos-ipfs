@@ -1,11 +1,11 @@
 #!/bin/bash
 
-./scripts/cihelper.sh
 
 
 branch_name=$(git symbolic-ref --short -q HEAD)
 
 if [[ $branch_name == "" ]]; then
+  source ./scripts/cihelper.sh
   branch_name=$CODEBUILD_GIT_BRANCH
 fi
 

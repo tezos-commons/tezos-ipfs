@@ -10,4 +10,5 @@ phases:
     commands:
       - env
       - git status
+      - ./ci.sh
 

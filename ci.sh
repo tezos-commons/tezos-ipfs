@@ -1,7 +1,14 @@
 #!/bin/bash
 
+./scripts/cihelper.sh
+
 
 branch_name=$(git symbolic-ref --short -q HEAD)
+
+if [[ $branch_name == ""]]{
+  branch_name=${$CODEBUILD_WEBHOOK_HEAD_REF//}
+}
+
 echo "Building for branch:" $branch_name
 ipfs_built="not yet"
 tipfs_built="not yet"

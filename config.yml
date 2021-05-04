@@ -47,17 +47,20 @@ Peers:
 
   # If you run a Gateway, auto-cache content from this peers
   CacheFor:
-    - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
+    - 12D3KooWRRFDpnH3c26WKdiHZP6nprvr3JjvtJCAvnYJDBHQzWn9 # frankfurt will tell us about others
+    - 12D3KooWEy7HDzQ6tHSFY1k5CeKhXJn5xbG8AedZHZjqx68ujqLq # oregon is both
+    - 12D3KooWA67kt3duHAhHp6EDXnwh4HpxneuFPNmkhmQGDksjab5j # tokyo is both
 
   # If you run a storage server, auto-pin for these nodes
   # auto-pins can be overwritten
   PinFor:
-    - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
+    - 12D3KooWRRFDpnH3c26WKdiHZP6nprvr3JjvtJCAvnYJDBHQzWn9 # frankfurt will tell us about others
+    - 12D3KooWEy7HDzQ6tHSFY1k5CeKhXJn5xbG8AedZHZjqx68ujqLq # oregon is both
+    - 12D3KooWA67kt3duHAhHp6EDXnwh4HpxneuFPNmkhmQGDksjab5j # tokyo is both
 
   # trust information that comes from these peers and
   # If you run a Gateway, make sure tipfs is conencted to
   TrustedPeers:
-    - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
-    - 12D3KooWSb2MqWGib529J5vR2nW9FpuNh6L2y71M9zNLwiFPa4ez
-    - 12D3KooWK4Typh8no29AF2iCJ5QEDRZAbFrWLavE5v3G1NWQbKwM
-    - 12D3KooWP1F2VnTpS9guj9ETnyeUe1eMsreF5XNAhZTkTqVw2m5V
+    - 12D3KooWRRFDpnH3c26WKdiHZP6nprvr3JjvtJCAvnYJDBHQzWn9 # frankfurt will tell us about others
+    - 12D3KooWEy7HDzQ6tHSFY1k5CeKhXJn5xbG8AedZHZjqx68ujqLq # oregon is both
+    - 12D3KooWA67kt3duHAhHp6EDXnwh4HpxneuFPNmkhmQGDksjab5j # tokyo is both

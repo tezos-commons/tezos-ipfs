@@ -25,16 +25,16 @@ build_tipfs(){
   tipfs_built = "yes"
 }
 
-// build ipfs on any branch containing ipfs
+# build ipfs on any branch containing ipfs
 if [[ $branch_name == *"ipfs"* ]]; then
   build_ipfs
 fi
 
-// build app on any release branch
+# build app on any release branch
 if [[ $branch_name == "v"* ]]; then
-  tipfs_built
+  build_tipfs
 fi
 
 if [[ $branch_name == "master" || $branch_name == "testing" ]]; then
-  tipfs_built
+  build_tipfs
 fi

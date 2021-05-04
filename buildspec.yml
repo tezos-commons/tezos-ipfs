@@ -6,6 +6,7 @@ phases:
       - echo Running CI for master
       - echo Logging into Dockerhub
       - docker login --username tezoscommons --password $DH_PASSWORD
+      - codebuild-git-wrapper.sh <REPO_URL> <REPO_BRANCH>
   build:
     commands:
       - ./ci.sh

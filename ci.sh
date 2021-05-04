@@ -5,9 +5,9 @@
 
 branch_name=$(git symbolic-ref --short -q HEAD)
 
-if [[ $branch_name == ""]]{
+if [[ $branch_name == ""]]; then
   branch_name=&CODEBUILD_GIT_BRANCH
-}
+fi
 
 echo "Building for branch:" $branch_name
 ipfs_built="not yet"

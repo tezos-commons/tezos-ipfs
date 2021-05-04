@@ -8,6 +8,6 @@ phases:
       - docker login --username tezoscommons --password $DH_PASSWORD
   build:
     commands:
-      - ./codebuild-git-wrapper.sh <REPO_URL> <REPO_BRANCH>
-      - ./ci.sh
+      - env
+      - git status
 

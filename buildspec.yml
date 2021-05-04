@@ -8,10 +8,5 @@ phases:
       - docker login --username tezoscommons --password $DH_PASSWORD
   build:
     commands:
-      - echo Build started on `date`
-      - echo Building the Docker images..
-      - docker build -t tezoscommons/tezos-ipfs:master ./
-      - docker push tezoscommons/tezos-ipfs:master
-      - docker build -t tezoscommons/tezos-ipfs:ipfs-s3-master ./docker/ipfs-s3
-      - docker push tezoscommons/tezos-ipfs:ipfs-s3-master
+      - ./ci.sh
 

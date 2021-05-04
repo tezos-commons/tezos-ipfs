@@ -19,10 +19,9 @@ Gateway:
       DisableSSL: true
   Uploads:
     Enabled: true
-    MaxSize: 50 # MB
 
 DB:
-  Storm: /tmp/bolt.db
+  Storm: /data/bolt.db
 
 Identity:
   Name: gw1
@@ -34,6 +33,5 @@ Peers:
   # content for
   CacheFor:
     - 12D3KooWKpNTJYurmMnoVpLaMoiJTKHjYifeMm4BHMpNrgcWpRH2
-
 
 ```

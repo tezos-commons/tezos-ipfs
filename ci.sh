@@ -2,7 +2,7 @@
 
 
 branch_name=$(git symbolic-ref --short -q HEAD)
-echo $branch_name
+echo "Building for branch:" $branch_name
 ipfs_built="not yet"
 tipfs_built="not yet"
 
@@ -22,7 +22,7 @@ build_tipfs(){
   fi
   docker build -t tezoscommons/tezos-ipfs:$branch_name ./
   docker push tezoscommons/tezos-ipfs:$branch_name
-  tipfs_built = "yes"
+  tipfs_built="yes"
 }
 
 # build ipfs on any branch containing ipfs

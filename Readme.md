@@ -19,3 +19,41 @@ For documentation examples, please see [Common use cases](./docs/common_use.md)
 
 
 [Admin API](./docs/admin.md)
+
+## Deployment
+
+we offer Docker images on: https://hub.docker.com/repository/docker/tezoscommons/tezos-ipfs
+
+Here is a simple docker-compose example with
+
+* tezos-ipfs
+* a real ipfs node ( optional )
+* a minio storage server ( optional )
+
+```
+version: "3.3"
+services:
+  tezos-ipfs:
+    depends_on:
+      - minio
+      - ipfs
+    image: tezoscommons/tezos-ipfs:<tag>
+    ports:
+      - 80:80 // public gateway
+    command: [ "run" ]
+    volumes:
+      - /path/to/config.yml:/root/config.yml
+      - /data:/data # db for pins etc
+
+  ipfs:
+    image: ipfs/go-ipfs:latest
+    command: ["daemon","--routing","dht","--enable-pubsub-experiment"]
+    ports:
+      - 4001:4001
+
+  minio:
+    image: minio/minio
+    command: [ "server","/data"]
+    volumes:
+     - minio_data:/data
+```

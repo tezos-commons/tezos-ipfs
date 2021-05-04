@@ -6,7 +6,7 @@
 branch_name=$(git symbolic-ref --short -q HEAD)
 
 if [[ $branch_name == ""]]{
-  branch_name=${$CODEBUILD_WEBHOOK_HEAD_REF//}
+  branch_name=&CODEBUILD_GIT_BRANCH
 }
 
 echo "Building for branch:" $branch_name
@@ -42,6 +42,7 @@ if [[ $branch_name == "v"* ]]; then
   build_tipfs
 fi
 
-if [[ $branch_name == "master" || $branch_name == "testing" ]]; then
+# build on a few special branches
+if [[ $branch_name == "master" || $branch_name == "testing" || $branch_name == "mvp" ]]; then
   build_tipfs
 fi

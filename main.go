@@ -17,6 +17,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -64,7 +65,18 @@ func GetLog(c *config.Config) *logrus.Entry {
 		}
 		mw := io.MultiWriter(os.Stdout, logFile)
 		l.SetOutput(mw)
+	}
+	switch strings.ToLower(c.Log.Level) {
+	case "debug":
+		l.SetLevel(logrus.DebugLevel)
+	case "trace":
 		l.SetLevel(logrus.TraceLevel)
+	case "info":
+		l.SetLevel(logrus.InfoLevel)
+	case "warn":
+		l.SetLevel(logrus.WarnLevel)
+	default:
+		l.SetLevel(logrus.InfoLevel)
 	}
 	if c.Log.Format == "text" {
 		l.SetFormatter(&logrus.TextFormatter{})
